@@ -1,0 +1,43 @@
+# mise configuration for the Fireworks AI (community) HA integration.
+#
+# Manages the Python toolchain and a project-local virtualenv used for local
+# validation (ruff lint/format + import/syntax checks against a real Home
+# Assistant install). CI still runs the authoritative hassfest + HACS checks on
+# GitHub; this just lets us catch problems before pushing.
+#
+# Usage:
+#   mise install        # install Python (+ ruff) per [tools]
+#   mise run setup      # create .venv and install dev dependencies
+#   mise run check      # lint + format-check + byte-compile the integration
+
+[tools]
+python = "3.13"
+ruff = "latest"
+
+[env]
+# Auto-create and activate a project-local venv on entering the repo.
+_.python.venv = { path = ".venv", create = true }
+
+# Tasks call the venv interpreter by explicit path (.venv/bin/python) instead of
+# bare `python`. A global mise `python` tool can otherwise shadow the project
+# venv on PATH, so this keeps installs and checks pinned to the 3.13 venv.
+
+[tasks.setup]
+description = "Create the venv and install dev dependencies"
+run = ".venv/bin/python -m pip install --upgrade pip && .venv/bin/python -m pip install -r requirements-dev.txt"
+
+[tasks.lint]
+description = "Lint the integration with ruff"
+run = "ruff check custom_components"
+
+[tasks.format]
+description = "Check formatting of the integration with ruff"
+run = "ruff format --check custom_components"
+
+[tasks.compile]
+description = "Byte-compile the integration to catch syntax errors"
+run = ".venv/bin/python -m compileall -q custom_components/fireworks_ai_community"
+
+[tasks.check]
+description = "Run lint, format-check and byte-compile"
+depends = ["lint", "format", "compile"]

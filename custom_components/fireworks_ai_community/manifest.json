@@ -1,0 +1,14 @@
+{
+  "domain": "fireworks_ai_community",
+  "name": "Fireworks AI",
+  "after_dependencies": ["assist_pipeline", "intent"],
+  "codeowners": ["@Jabe"],
+  "config_flow": true,
+  "dependencies": ["conversation"],
+  "documentation": "https://github.com/Jabe/ha-fireworks-ai-community",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Jabe/ha-fireworks-ai-community/issues",
+  "requirements": ["openai==2.21.0"],
+  "version": "0.1.0"
+}

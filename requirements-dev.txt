@@ -1,0 +1,14 @@
+# Dev-only dependencies for local validation of the integration.
+# These are NOT shipped — runtime requirements live in
+# custom_components/fireworks_ai_community/manifest.json.
+
+# A real Home Assistant install so imports/types resolve like they do at
+# runtime. Min supported version mirrors hacs.json ("homeassistant": "2025.7.0").
+homeassistant>=2025.7.0
+
+# Pinned to match the integration manifest.
+openai==2.21.0
+
+# Used by entity.py for tool/structured-output schema conversion (normally a
+# transitive HA dependency; listed explicitly so it is always present).
+voluptuous-openapi
