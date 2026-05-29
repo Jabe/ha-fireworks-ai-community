@@ -49,7 +49,12 @@ The architecture reserves clean extension points for STT and image generation.
 
 - **API key** — your Fireworks AI key, validated on setup against the Fireworks
   models endpoint.
-- **Model** (per subentry) — chosen from your account's available models.
+- **Model** (per subentry) — the dropdown lists the models Fireworks reports as
+  available to your account (its `/v1/models` response), which is only a subset
+  of the full catalog. You can also **type any model ID** directly — e.g.
+  `accounts/fireworks/models/<name>` from the [model catalog][fireworks-models].
+  Serverless models work immediately; other models must first have an
+  [on-demand deployment][fireworks-ondemand] in your Fireworks account.
 - **Prompt** / **LLM tools** (conversation) — standard Assist options.
 
 ## Development
@@ -77,6 +82,8 @@ the Open Home Foundation.
 [mise]: https://mise.jdx.dev/
 [fireworks]: https://fireworks.ai/
 [fireworks-keys]: https://fireworks.ai/account/api-keys
+[fireworks-models]: https://fireworks.ai/models
+[fireworks-ondemand]: https://docs.fireworks.ai/guides/ondemand-deployments
 [open-router]: https://www.home-assistant.io/integrations/open_router/
 [hacs]: https://hacs.xyz/
 [hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg

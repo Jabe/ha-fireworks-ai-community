@@ -211,6 +211,10 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
                             options=self._model_options(),
                             mode=SelectSelectorMode.DROPDOWN,
                             sort=True,
+                            # Fireworks' /v1/models only lists models provisioned
+                            # for the account; allow typing any catalog model id
+                            # (e.g. accounts/fireworks/models/<name>).
+                            custom_value=True,
                         ),
                     ),
                     vol.Optional(
@@ -303,6 +307,10 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
                             options=self._model_options(),
                             mode=SelectSelectorMode.DROPDOWN,
                             sort=True,
+                            # Fireworks' /v1/models only lists models provisioned
+                            # for the account; allow typing any catalog model id
+                            # (e.g. accounts/fireworks/models/<name>).
+                            custom_value=True,
                         ),
                     ),
                 }
