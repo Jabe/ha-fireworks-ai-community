@@ -1,0 +1,67 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "服务已配置"
+    },
+    "error": {
+      "cannot_connect": "连接失败",
+      "unknown": "意外错误"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "API 密钥"
+        },
+        "data_description": {
+          "api_key": "Fireworks AI API 密钥"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "ai_task_data": {
+      "abort": {
+        "cannot_connect": "连接失败",
+        "entry_not_loaded": "未加载主集成条目。请确保在重新配置之前已加载集成。",
+        "unknown": "意外错误"
+      },
+      "entry_type": "人工智能任务",
+      "initiate_flow": {
+        "user": "添加人工智能任务"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "model": "模型"
+          },
+          "description": "配置人工智能任务"
+        }
+      }
+    },
+    "conversation": {
+      "abort": {
+        "cannot_connect": "连接失败",
+        "entry_not_loaded": "未加载主集成条目。请确保在重新配置之前已加载集成。",
+        "unknown": "意外错误"
+      },
+      "entry_type": "对话代理",
+      "initiate_flow": {
+        "user": "添加对话代理"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "llm_hass_api": "控制 Home Assistant",
+            "model": "模型",
+            "prompt": "指导"
+          },
+          "data_description": {
+            "model": "用于对话代理的模型",
+            "prompt": "指导 LLM 应如何响应。这可以是模板。"
+          },
+          "description": "配置对话代理"
+        }
+      }
+    }
+  }
+}

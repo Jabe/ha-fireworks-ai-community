@@ -1,0 +1,67 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "El servicio ya está configurado"
+    },
+    "error": {
+      "cannot_connect": "No se pudo conectar",
+      "unknown": "Error inesperado"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "Clave API"
+        },
+        "data_description": {
+          "api_key": "Una clave API de Fireworks AI"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "ai_task_data": {
+      "abort": {
+        "cannot_connect": "No se pudo conectar",
+        "entry_not_loaded": "La entrada de integración principal no está cargada. Por favor, asegúrate de que la integración esté cargada antes de volver a configurar.",
+        "unknown": "Error inesperado"
+      },
+      "entry_type": "Tarea de IA",
+      "initiate_flow": {
+        "user": "Añadir tarea IA"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "model": "Modelo"
+          },
+          "description": "Configurar la tarea de IA"
+        }
+      }
+    },
+    "conversation": {
+      "abort": {
+        "cannot_connect": "No se pudo conectar",
+        "entry_not_loaded": "La entrada de integración principal no está cargada. Por favor, asegúrate de que la integración esté cargada antes de volver a configurar.",
+        "unknown": "Error inesperado"
+      },
+      "entry_type": "Agente de conversación",
+      "initiate_flow": {
+        "user": "Añadir agente de conversación"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "llm_hass_api": "Controla Home Assistant",
+            "model": "Modelo",
+            "prompt": "Instrucciones"
+          },
+          "data_description": {
+            "model": "El modelo a utilizar para el agente de conversación",
+            "prompt": "Indica cómo debe responder el LLM. Puede ser una plantilla."
+          },
+          "description": "Configurar el agente de conversación"
+        }
+      }
+    }
+  }
+}

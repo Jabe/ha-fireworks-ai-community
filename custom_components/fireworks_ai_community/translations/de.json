@@ -1,0 +1,67 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Dienst ist bereits konfiguriert"
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "API-Schlüssel"
+        },
+        "data_description": {
+          "api_key": "Ein Fireworks AI-API-Schlüssel"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "ai_task_data": {
+      "abort": {
+        "cannot_connect": "Verbindung fehlgeschlagen",
+        "entry_not_loaded": "Der Haupt-Integrationseintrag ist nicht geladen. Bitte stelle sicher, dass die Integration geladen ist, bevor du sie neu konfigurierst.",
+        "unknown": "Unerwarteter Fehler"
+      },
+      "entry_type": "KI-Task",
+      "initiate_flow": {
+        "user": "KI-Task hinzufügen"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "model": "Modell"
+          },
+          "description": "Konfiguriere den KI-Task"
+        }
+      }
+    },
+    "conversation": {
+      "abort": {
+        "cannot_connect": "Verbindung fehlgeschlagen",
+        "entry_not_loaded": "Der Haupt-Integrationseintrag ist nicht geladen. Bitte stelle sicher, dass die Integration geladen ist, bevor du sie neu konfigurierst.",
+        "unknown": "Unerwarteter Fehler"
+      },
+      "entry_type": "Konversationsagent",
+      "initiate_flow": {
+        "user": "Konversationsagent hinzufügen"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "llm_hass_api": "Home Assistant steuern",
+            "model": "Modell",
+            "prompt": "Anweisungen"
+          },
+          "data_description": {
+            "model": "Das für den Konversationsagenten zu verwendende Modell",
+            "prompt": "Gib an, wie das LLM antworten soll. Dies kann ein Template sein."
+          },
+          "description": "Konfiguriere den Konversationsagenten"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Le service est déjà configuré"
+    },
+    "error": {
+      "cannot_connect": "Échec de connexion",
+      "unknown": "Erreur inattendue"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "Clé d'API"
+        },
+        "data_description": {
+          "api_key": "Une clé API Fireworks AI"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "ai_task_data": {
+      "abort": {
+        "cannot_connect": "Échec de connexion",
+        "entry_not_loaded": "Le point d'entrée principal de l'intégration n'est pas chargé. Veuillez vous assurer que l'intégration est chargée avant de reconfigurer.",
+        "unknown": "Erreur inattendue"
+      },
+      "entry_type": "Tâche d'IA",
+      "initiate_flow": {
+        "user": "Ajouter une tâche d'IA"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "model": "Modèle"
+          },
+          "description": "Configurer la tâche d'IA"
+        }
+      }
+    },
+    "conversation": {
+      "abort": {
+        "cannot_connect": "Échec de connexion",
+        "entry_not_loaded": "Le point d'entrée principal de l'intégration n'est pas chargé. Veuillez vous assurer que l'intégration est chargée avant de reconfigurer.",
+        "unknown": "Erreur inattendue"
+      },
+      "entry_type": "Agent de conversation",
+      "initiate_flow": {
+        "user": "Ajouter un agent de conversation"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "llm_hass_api": "Contrôler Home Assistant",
+            "model": "Modèle",
+            "prompt": "Instructions"
+          },
+          "data_description": {
+            "model": "Le modèle à utiliser pour l'agent de conversation",
+            "prompt": "Indiquer comment le LLM doit répondre. Il peut s'agir d'un modèle."
+          },
+          "description": "Configurer l'agent de conversation"
+        }
+      }
+    }
+  }
+}

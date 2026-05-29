@@ -1,0 +1,41 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Dienst is al geconfigureerd"
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken",
+      "unknown": "Onverwachte fout"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "API-sleutel"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "ai_task_data": {
+      "abort": {
+        "cannot_connect": "Kan geen verbinding maken",
+        "unknown": "Onverwachte fout"
+      },
+      "entry_type": "AI taak"
+    },
+    "conversation": {
+      "abort": {
+        "cannot_connect": "Kan geen verbinding maken",
+        "unknown": "Onverwachte fout"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "llm_hass_api": "Beheer Home Assistant",
+            "prompt": "Instructies"
+          }
+        }
+      }
+    }
+  }
+}

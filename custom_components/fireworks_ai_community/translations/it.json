@@ -1,0 +1,43 @@
+{
+  "config_subentries": {
+    "ai_task_data": {
+      "abort": {
+        "cannot_connect": "Impossibile connettersi",
+        "entry_not_loaded": "La voce di integrazione principale non è caricata. Assicurarsi che l'integrazione sia caricata prima di riconfigurarla.",
+        "unknown": "Errore imprevisto"
+      },
+      "entry_type": "Attività di intelligenza artificiale",
+      "initiate_flow": {
+        "user": "Aggiungi attività AI"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "model": "Modello"
+          },
+          "description": "Configura l'attività di IA"
+        }
+      }
+    },
+    "conversation": {
+      "abort": {
+        "cannot_connect": "Impossibile connettersi",
+        "entry_not_loaded": "La voce di integrazione principale non è caricata. Assicurarsi che l'integrazione sia caricata prima di riconfigurarla.",
+        "unknown": "Errore imprevisto"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "llm_hass_api": "Controlla Home Assistant",
+            "model": "Modello"
+          },
+          "data_description": {
+            "model": "Il modello da utilizzare per l'agente di conversazione",
+            "prompt": "Indica come l'LLM dovrebbe rispondere. Questo può essere un modello."
+          },
+          "description": "Configura l'agente di conversazione"
+        }
+      }
+    }
+  }
+}
