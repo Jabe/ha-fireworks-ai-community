@@ -23,3 +23,6 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # Brand assets / brands-repo listing are intentionally deferred until
+          # this integration goes official, so skip the brands check for now.
+          ignore: brands
