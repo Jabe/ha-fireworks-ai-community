@@ -211,8 +211,9 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
                             options=self._model_options(),
                             mode=SelectSelectorMode.DROPDOWN,
                             sort=True,
-                            # Fireworks' /v1/models only lists models provisioned
-                            # for the account; allow typing any catalog model id
+                            # Fireworks' /v1/models is a curated subset — many
+                            # serverless models are omitted even though they are
+                            # callable — so allow typing any catalog model id
                             # (e.g. accounts/fireworks/models/<name>).
                             custom_value=True,
                         ),
@@ -307,8 +308,9 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
                             options=self._model_options(),
                             mode=SelectSelectorMode.DROPDOWN,
                             sort=True,
-                            # Fireworks' /v1/models only lists models provisioned
-                            # for the account; allow typing any catalog model id
+                            # Fireworks' /v1/models is a curated subset — many
+                            # serverless models are omitted even though they are
+                            # callable — so allow typing any catalog model id
                             # (e.g. accounts/fireworks/models/<name>).
                             custom_value=True,
                         ),
