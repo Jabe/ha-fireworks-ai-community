@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+import httpx
 from openai import AsyncOpenAI, AuthenticationError, OpenAIError
 
 from homeassistant.config_entries import ConfigEntry
@@ -35,6 +36,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: FireworksConfigEntry) ->
         base_url=CHAT_BASE_URL,
         api_key=entry.data[CONF_API_KEY],
         http_client=get_async_client(hass),
+        # Bound a stalled completion instead of inheriting the SDK's 600 s
+        # default. The Assist pipeline puts no timeout around the conversation
+        # stage (it just awaits conversation.async_converse), so on a Wyoming
+        # satellite a stall would otherwise keep the pipeline busy for ~10 min.
+        # 120 s leaves headroom for slow reasoning models; max_retries=1 keeps a
+        # stall from stacking that wait ~3x.
+        timeout=httpx.Timeout(120.0, connect=5.0),
+        max_retries=1,
     )
 
     # Cache current platform data which gets added to each request
