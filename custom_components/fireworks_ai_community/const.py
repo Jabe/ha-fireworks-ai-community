@@ -15,7 +15,14 @@ CONF_RECOMMENDED = "recommended"
 # param" so the model keeps its own default.
 CONF_REASONING_EFFORT = "reasoning_effort"
 REASONING_EFFORT_DEFAULT = "default"
+REASONING_EFFORT_NONE = "none"
 REASONING_EFFORT_OPTIONS = ("none", "low", "medium", "high", "max")
+
+# When reasoning is on, its tokens share the max_tokens budget with the answer,
+# so a long chain can truncate the reply before any `content` is emitted. Give it
+# generous headroom (Fireworks recommends >=16000 for the Kimi K2 family). Only
+# applied when reasoning is explicitly enabled, so it never caps other models.
+REASONING_MAX_TOKENS = 16000
 
 # Fireworks AI's OpenAI-compatible chat completions endpoint. This is the only
 # base URL used in v1 (conversation + AI Task).

@@ -40,6 +40,8 @@ from .const import (
     DOMAIN,
     LOGGER,
     REASONING_EFFORT_DEFAULT,
+    REASONING_EFFORT_NONE,
+    REASONING_MAX_TOKENS,
 )
 
 MAX_TOOL_ITERATIONS = 10
@@ -287,6 +289,9 @@ class FireworksEntity(Entity):
         effort = self.subentry.data.get(CONF_REASONING_EFFORT, REASONING_EFFORT_DEFAULT)
         if effort != REASONING_EFFORT_DEFAULT:
             model_args["reasoning_effort"] = effort
+            if effort != REASONING_EFFORT_NONE:
+                # Reasoning on: keep its tokens from starving the answer.
+                model_args["max_tokens"] = REASONING_MAX_TOKENS
 
         tools: list[ChatCompletionFunctionToolParam] | None = None
         if chat_log.llm_api:
