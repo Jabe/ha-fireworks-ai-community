@@ -32,9 +32,13 @@
       "step": {
         "init": {
           "data": {
-            "model": "Modell"
+            "model": "Modell",
+            "reasoning_effort": "Reasoning-Aufwand"
           },
-          "description": "Konfiguriere den KI-Task"
+          "description": "Konfiguriere den KI-Task",
+          "data_description": {
+            "reasoning_effort": "Wie intensiv Reasoning-Modelle vor der Antwort nachdenken. 'Model default' lässt es unverändert; 'None' schaltet Reasoning ab."
+          }
         }
       }
     },
@@ -53,11 +57,13 @@
           "data": {
             "llm_hass_api": "Home Assistant steuern",
             "model": "Modell",
-            "prompt": "Anweisungen"
+            "prompt": "Anweisungen",
+            "reasoning_effort": "Reasoning-Aufwand"
           },
           "data_description": {
             "model": "Das für den Konversationsagenten zu verwendende Modell",
-            "prompt": "Gib an, wie das LLM antworten soll. Dies kann ein Template sein."
+            "prompt": "Gib an, wie das LLM antworten soll. Dies kann ein Template sein.",
+            "reasoning_effort": "Wie intensiv Reasoning-Modelle vor der Antwort nachdenken. 'Model default' lässt es unverändert; 'None' schaltet Reasoning ab."
           },
           "description": "Konfiguriere den Konversationsagenten"
         }

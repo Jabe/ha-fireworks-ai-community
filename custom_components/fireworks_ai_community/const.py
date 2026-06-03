@@ -10,6 +10,13 @@ LOGGER = logging.getLogger(__package__)
 
 CONF_RECOMMENDED = "recommended"
 
+# Reasoning-effort control (Fireworks' `reasoning_effort` param, reasoning models
+# only). REASONING_EFFORT_DEFAULT is a UI-only sentinel meaning "don't send the
+# param" so the model keeps its own default.
+CONF_REASONING_EFFORT = "reasoning_effort"
+REASONING_EFFORT_DEFAULT = "default"
+REASONING_EFFORT_OPTIONS = ("none", "low", "medium", "high", "max")
+
 # Fireworks AI's OpenAI-compatible chat completions endpoint. This is the only
 # base URL used in v1 (conversation + AI Task).
 CHAT_BASE_URL = "https://api.fireworks.ai/inference/v1"

@@ -35,7 +35,12 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.json import json_dumps
 
 from . import FireworksConfigEntry
-from .const import DOMAIN, LOGGER
+from .const import (
+    CONF_REASONING_EFFORT,
+    DOMAIN,
+    LOGGER,
+    REASONING_EFFORT_DEFAULT,
+)
 
 MAX_TOOL_ITERATIONS = 10
 
@@ -276,6 +281,12 @@ class FireworksEntity(Entity):
             "model": self.model,
             "user": chat_log.conversation_id,
         }
+
+        # Reasoning models accept `reasoning_effort` (none/low/medium/high/max);
+        # the sentinel default means "leave it unset" so the model keeps its own.
+        effort = self.subentry.data.get(CONF_REASONING_EFFORT, REASONING_EFFORT_DEFAULT)
+        if effort != REASONING_EFFORT_DEFAULT:
+            model_args["reasoning_effort"] = effort
 
         tools: list[ChatCompletionFunctionToolParam] | None = None
         if chat_log.llm_api:

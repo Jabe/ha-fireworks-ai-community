@@ -42,7 +42,11 @@
         "init": {
           "data": {
             "llm_hass_api": "Управление Home Assistant",
-            "prompt": "Инструкции"
+            "prompt": "Инструкции",
+            "reasoning_effort": "Усилие рассуждения"
+          },
+          "data_description": {
+            "reasoning_effort": "Насколько усердно модели рассуждают перед ответом. 'Model default' оставляет без изменений; 'None' отключает рассуждения."
           }
         }
       }

@@ -30,7 +30,10 @@ from homeassistant.helpers.selector import (
 from .const import (
     CHAT_BASE_URL,
     CONF_PROMPT,
+    CONF_REASONING_EFFORT,
     DOMAIN,
+    REASONING_EFFORT_DEFAULT,
+    REASONING_EFFORT_OPTIONS,
     RECOMMENDED_CONVERSATION_OPTIONS,
 )
 
@@ -48,6 +51,42 @@ def _model_label(model_id: str) -> str:
     if model_id.startswith(_FIREWORKS_MODEL_PREFIX):
         return model_id[len(_FIREWORKS_MODEL_PREFIX) :]
     return model_id
+
+
+def _reasoning_effort_selector() -> SelectSelector:
+    """Build the (advanced) reasoning-effort dropdown.
+
+    Reasoning models only. The leading "model default" option is a sentinel that
+    leaves the param unset; the rest map straight to Fireworks' reasoning_effort.
+    """
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[
+                SelectOptionDict(value=REASONING_EFFORT_DEFAULT, label="Model default"),
+                *(
+                    SelectOptionDict(value=value, label=value.capitalize())
+                    for value in REASONING_EFFORT_OPTIONS
+                ),
+            ],
+            mode=SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _persist_reasoning_effort(
+    user_input: dict[str, Any], options: dict[str, Any]
+) -> None:
+    """Normalise the advanced-only reasoning_effort field before saving.
+
+    Drops the "model default" sentinel so it is never stored, and carries a
+    previously-set value over when the field was hidden (advanced mode off), so
+    reconfiguring without advanced mode does not wipe it.
+    """
+    if CONF_REASONING_EFFORT in user_input:
+        if user_input[CONF_REASONING_EFFORT] == REASONING_EFFORT_DEFAULT:
+            user_input.pop(CONF_REASONING_EFFORT)
+    elif CONF_REASONING_EFFORT in options:
+        user_input[CONF_REASONING_EFFORT] = options[CONF_REASONING_EFFORT]
 
 
 class FireworksConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -168,6 +207,7 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
         if user_input is not None:
             if not user_input.get(CONF_LLM_HASS_API):
                 user_input.pop(CONF_LLM_HASS_API, None)
+            _persist_reasoning_effort(user_input, self.options)
             if self._is_new:
                 return self.async_create_entry(
                     title=_model_label(user_input[CONF_MODEL]), data=user_input
@@ -236,6 +276,19 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
                     ): SelectSelector(
                         SelectSelectorConfig(options=hass_apis, multiple=True)
                     ),
+                    # Advanced-only: most users never touch reasoning effort.
+                    **(
+                        {
+                            vol.Optional(
+                                CONF_REASONING_EFFORT,
+                                default=self.options.get(
+                                    CONF_REASONING_EFFORT, REASONING_EFFORT_DEFAULT
+                                ),
+                            ): _reasoning_effort_selector()
+                        }
+                        if self.show_advanced_options
+                        else {}
+                    ),
                 }
             ),
         )
@@ -276,6 +329,7 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
             return self.async_abort(reason="entry_not_loaded")
 
         if user_input is not None:
+            _persist_reasoning_effort(user_input, self.options)
             if self._is_new:
                 return self.async_create_entry(
                     title=_model_label(user_input[CONF_MODEL]), data=user_input
@@ -314,6 +368,19 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
                             # (e.g. accounts/fireworks/models/<name>).
                             custom_value=True,
                         ),
+                    ),
+                    # Advanced-only: most users never touch reasoning effort.
+                    **(
+                        {
+                            vol.Optional(
+                                CONF_REASONING_EFFORT,
+                                default=self.options.get(
+                                    CONF_REASONING_EFFORT, REASONING_EFFORT_DEFAULT
+                                ),
+                            ): _reasoning_effort_selector()
+                        }
+                        if self.show_advanced_options
+                        else {}
                     ),
                 }
             ),

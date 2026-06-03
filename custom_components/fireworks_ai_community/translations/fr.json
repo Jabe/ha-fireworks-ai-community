@@ -32,9 +32,13 @@
       "step": {
         "init": {
           "data": {
-            "model": "Modèle"
+            "model": "Modèle",
+            "reasoning_effort": "Effort de raisonnement"
           },
-          "description": "Configurer la tâche d'IA"
+          "description": "Configurer la tâche d'IA",
+          "data_description": {
+            "reasoning_effort": "À quel point les modèles de raisonnement réfléchissent avant de répondre. 'Model default' le laisse non défini ; 'None' désactive le raisonnement."
+          }
         }
       }
     },
@@ -53,11 +57,13 @@
           "data": {
             "llm_hass_api": "Contrôler Home Assistant",
             "model": "Modèle",
-            "prompt": "Instructions"
+            "prompt": "Instructions",
+            "reasoning_effort": "Effort de raisonnement"
           },
           "data_description": {
             "model": "Le modèle à utiliser pour l'agent de conversation",
-            "prompt": "Indiquer comment le LLM doit répondre. Il peut s'agir d'un modèle."
+            "prompt": "Indiquer comment le LLM doit répondre. Il peut s'agir d'un modèle.",
+            "reasoning_effort": "À quel point les modèles de raisonnement réfléchissent avant de répondre. 'Model default' le laisse non défini ; 'None' désactive le raisonnement."
           },
           "description": "Configurer l'agent de conversation"
         }

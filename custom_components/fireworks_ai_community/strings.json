@@ -35,9 +35,13 @@
       "step": {
         "init": {
           "data": {
-            "model": "[%key:common::generic::model%]"
+            "model": "[%key:common::generic::model%]",
+            "reasoning_effort": "Reasoning effort"
           },
-          "description": "Configure the AI task"
+          "description": "Configure the AI task",
+          "data_description": {
+            "reasoning_effort": "How hard reasoning models think before answering. 'Model default' leaves it unset; 'None' disables reasoning."
+          }
         }
       }
     },
@@ -58,12 +62,14 @@
           "data": {
             "llm_hass_api": "[%key:common::config_flow::data::llm_hass_api%]",
             "model": "[%key:common::generic::model%]",
-            "prompt": "[%key:common::config_flow::data::prompt%]"
+            "prompt": "[%key:common::config_flow::data::prompt%]",
+            "reasoning_effort": "Reasoning effort"
           },
           "data_description": {
             "llm_hass_api": "Select which tools the model can use to interact with your devices and entities.",
             "model": "The model to use for the conversation agent",
-            "prompt": "Instruct how the LLM should respond. This can be a template."
+            "prompt": "Instruct how the LLM should respond. This can be a template.",
+            "reasoning_effort": "How hard reasoning models think before answering. 'Model default' leaves it unset; 'None' disables reasoning."
           },
           "description": "Configure the conversation agent"
         }
