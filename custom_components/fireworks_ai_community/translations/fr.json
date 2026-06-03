@@ -33,11 +33,13 @@
         "init": {
           "data": {
             "model": "Modèle",
-            "reasoning_effort": "Effort de raisonnement"
+            "reasoning_effort": "Effort de raisonnement",
+            "show_reasoning": "Afficher le raisonnement"
           },
           "description": "Configurer la tâche d'IA",
           "data_description": {
-            "reasoning_effort": "À quel point les modèles de raisonnement réfléchissent avant de répondre. 'Model default' le laisse non défini ; 'None' désactive le raisonnement."
+            "reasoning_effort": "À quel point les modèles de raisonnement réfléchissent avant de répondre. 'Model default' le laisse non défini ; 'None' désactive le raisonnement.",
+            "show_reasoning": "Diffuse le raisonnement du modèle dans l'interface de chat (modèles de raisonnement uniquement). Désactivé par défaut : peut bloquer le chat Assist lors des étapes avec outils. Le modèle raisonne dans tous les cas."
           }
         }
       }
@@ -58,12 +60,14 @@
             "llm_hass_api": "Contrôler Home Assistant",
             "model": "Modèle",
             "prompt": "Instructions",
-            "reasoning_effort": "Effort de raisonnement"
+            "reasoning_effort": "Effort de raisonnement",
+            "show_reasoning": "Afficher le raisonnement"
           },
           "data_description": {
             "model": "Le modèle à utiliser pour l'agent de conversation",
             "prompt": "Indiquer comment le LLM doit répondre. Il peut s'agir d'un modèle.",
-            "reasoning_effort": "À quel point les modèles de raisonnement réfléchissent avant de répondre. 'Model default' le laisse non défini ; 'None' désactive le raisonnement."
+            "reasoning_effort": "À quel point les modèles de raisonnement réfléchissent avant de répondre. 'Model default' le laisse non défini ; 'None' désactive le raisonnement.",
+            "show_reasoning": "Diffuse le raisonnement du modèle dans l'interface de chat (modèles de raisonnement uniquement). Désactivé par défaut : peut bloquer le chat Assist lors des étapes avec outils. Le modèle raisonne dans tous les cas."
           },
           "description": "Configurer l'agent de conversation"
         }

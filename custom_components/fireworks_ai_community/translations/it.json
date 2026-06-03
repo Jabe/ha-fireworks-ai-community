@@ -14,11 +14,13 @@
         "init": {
           "data": {
             "model": "Modello",
-            "reasoning_effort": "Sforzo di ragionamento"
+            "reasoning_effort": "Sforzo di ragionamento",
+            "show_reasoning": "Mostra ragionamento"
           },
           "description": "Configura l'attività di IA",
           "data_description": {
-            "reasoning_effort": "Quanto i modelli di ragionamento riflettono prima di rispondere. 'Model default' lo lascia non impostato; 'None' disattiva il ragionamento."
+            "reasoning_effort": "Quanto i modelli di ragionamento riflettono prima di rispondere. 'Model default' lo lascia non impostato; 'None' disattiva il ragionamento.",
+            "show_reasoning": "Trasmetti la catena di pensiero del modello nell'interfaccia chat (solo modelli di ragionamento). Disattivato per impostazione predefinita: può bloccare la chat Assist nei passaggi con strumenti. Il modello ragiona comunque."
           }
         }
       }
@@ -34,12 +36,14 @@
           "data": {
             "llm_hass_api": "Controlla Home Assistant",
             "model": "Modello",
-            "reasoning_effort": "Sforzo di ragionamento"
+            "reasoning_effort": "Sforzo di ragionamento",
+            "show_reasoning": "Mostra ragionamento"
           },
           "data_description": {
             "model": "Il modello da utilizzare per l'agente di conversazione",
             "prompt": "Indica come l'LLM dovrebbe rispondere. Questo può essere un modello.",
-            "reasoning_effort": "Quanto i modelli di ragionamento riflettono prima di rispondere. 'Model default' lo lascia non impostato; 'None' disattiva il ragionamento."
+            "reasoning_effort": "Quanto i modelli di ragionamento riflettono prima di rispondere. 'Model default' lo lascia non impostato; 'None' disattiva il ragionamento.",
+            "show_reasoning": "Trasmetti la catena di pensiero del modello nell'interfaccia chat (solo modelli di ragionamento). Disattivato per impostazione predefinita: può bloccare la chat Assist nei passaggi con strumenti. Il modello ragiona comunque."
           },
           "description": "Configura l'agente di conversazione"
         }

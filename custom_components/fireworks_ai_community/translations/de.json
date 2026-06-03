@@ -33,11 +33,13 @@
         "init": {
           "data": {
             "model": "Modell",
-            "reasoning_effort": "Reasoning-Aufwand"
+            "reasoning_effort": "Reasoning-Aufwand",
+            "show_reasoning": "Reasoning anzeigen"
           },
           "description": "Konfiguriere den KI-Task",
           "data_description": {
-            "reasoning_effort": "Wie intensiv Reasoning-Modelle vor der Antwort nachdenken. 'Model default' lässt es unverändert; 'None' schaltet Reasoning ab."
+            "reasoning_effort": "Wie intensiv Reasoning-Modelle vor der Antwort nachdenken. 'Model default' lässt es unverändert; 'None' schaltet Reasoning ab.",
+            "show_reasoning": "Die Gedankenkette des Modells im Chat-UI streamen (nur Reasoning-Modelle). Standardmäßig aus — kann die Assist-Chat-Anzeige bei Tool-Schritten hängen lassen. Das Modell denkt so oder so."
           }
         }
       }
@@ -58,12 +60,14 @@
             "llm_hass_api": "Home Assistant steuern",
             "model": "Modell",
             "prompt": "Anweisungen",
-            "reasoning_effort": "Reasoning-Aufwand"
+            "reasoning_effort": "Reasoning-Aufwand",
+            "show_reasoning": "Reasoning anzeigen"
           },
           "data_description": {
             "model": "Das für den Konversationsagenten zu verwendende Modell",
             "prompt": "Gib an, wie das LLM antworten soll. Dies kann ein Template sein.",
-            "reasoning_effort": "Wie intensiv Reasoning-Modelle vor der Antwort nachdenken. 'Model default' lässt es unverändert; 'None' schaltet Reasoning ab."
+            "reasoning_effort": "Wie intensiv Reasoning-Modelle vor der Antwort nachdenken. 'Model default' lässt es unverändert; 'None' schaltet Reasoning ab.",
+            "show_reasoning": "Die Gedankenkette des Modells im Chat-UI streamen (nur Reasoning-Modelle). Standardmäßig aus — kann die Assist-Chat-Anzeige bei Tool-Schritten hängen lassen. Das Modell denkt so oder so."
           },
           "description": "Konfiguriere den Konversationsagenten"
         }

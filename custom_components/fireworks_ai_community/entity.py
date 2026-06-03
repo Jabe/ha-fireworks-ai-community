@@ -37,6 +37,7 @@ from homeassistant.helpers.json import json_dumps
 from . import FireworksConfigEntry
 from .const import (
     CONF_REASONING_EFFORT,
+    CONF_SHOW_REASONING,
     DOMAIN,
     LOGGER,
     REASONING_EFFORT_DEFAULT,
@@ -163,15 +164,22 @@ def _decode_tool_arguments(arguments: str) -> Any:
 
 async def _transform_stream(
     stream: openai.AsyncStream[ChatCompletionChunk],
+    show_reasoning: bool,
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform a Fireworks streaming response into ChatLog deltas.
 
-    Emits the role once, then reasoning (as thinking_content) and answer text (as
-    content) fragments as they arrive — so the Assist pipeline can start speaking
-    the answer before generation finishes — and finally the fully-assembled tool
-    calls. Tool-call arguments stream in fragments keyed by index and must be
-    buffered until complete: ChatLog dispatches a tool the moment it sees a
-    ToolInput, so a partial would fire a malformed call.
+    Emits the role once, then answer text (as content) fragments as they arrive —
+    so the Assist pipeline can start speaking before generation finishes — and
+    finally the fully-assembled tool calls. Tool-call arguments stream in
+    fragments keyed by index and must be buffered until complete: ChatLog
+    dispatches a tool the moment it sees a ToolInput, so a partial would fire a
+    malformed call.
+
+    When ``show_reasoning`` is set, a reasoning model's chain of thought (the
+    non-standard ``reasoning_content`` field) is also surfaced as thinking_content.
+    Off by default: the reasoning still runs server-side and improves the answer,
+    but streaming it makes the Assist chat UI stall on tool-using turns (a message
+    with thinking but no content yet), so it is opt-in.
     """
     yield {"role": "assistant"}
 
@@ -182,13 +190,10 @@ async def _transform_stream(
             continue
         delta = chunk.choices[0].delta
 
-        # Reasoning models stream their chain of thought in a non-standard
-        # `reasoning_content` field (content stays None until the answer lands).
-        # Surface it as thinking_content so ChatLog keeps it apart from the spoken
-        # answer — the pipeline can show it, but TTS only voices `content`.
-        extra = delta.model_extra or {}
-        if reasoning := extra.get("reasoning_content") or extra.get("reasoning"):
-            yield {"thinking_content": reasoning}
+        if show_reasoning:
+            extra = delta.model_extra or {}
+            if reasoning := extra.get("reasoning_content") or extra.get("reasoning"):
+                yield {"thinking_content": reasoning}
 
         if delta.content:
             yield {"content": delta.content}
@@ -338,6 +343,7 @@ class FireworksEntity(Entity):
             )
 
         client = self.entry.runtime_data.chat
+        show_reasoning = self.subentry.data.get(CONF_SHOW_REASONING, False)
 
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
@@ -347,7 +353,7 @@ class FireworksEntity(Entity):
                     [
                         msg
                         async for content in chat_log.async_add_delta_content_stream(
-                            self.entity_id, _transform_stream(result)
+                            self.entity_id, _transform_stream(result, show_reasoning)
                         )
                         if (msg := _convert_content_to_chat_message(content))
                     ]

@@ -33,11 +33,13 @@
         "init": {
           "data": {
             "model": "Modelo",
-            "reasoning_effort": "Esforço de raciocínio"
+            "reasoning_effort": "Esforço de raciocínio",
+            "show_reasoning": "Mostrar raciocínio"
           },
           "description": "Configurar a tarefa de IA",
           "data_description": {
-            "reasoning_effort": "O quanto os modelos de raciocínio pensam antes de responder. 'Model default' deixa sem definir; 'None' desativa o raciocínio."
+            "reasoning_effort": "O quanto os modelos de raciocínio pensam antes de responder. 'Model default' deixa sem definir; 'None' desativa o raciocínio.",
+            "show_reasoning": "Transmite a cadeia de raciocínio do modelo para a interface de chat (apenas modelos de raciocínio). Desativado por padrão: pode travar o chat do Assist em etapas com ferramentas. O modelo raciocina de qualquer forma."
           }
         }
       }
@@ -58,12 +60,14 @@
             "llm_hass_api": "Controlar Home Assistant",
             "model": "Modelo",
             "prompt": "Instruções",
-            "reasoning_effort": "Esforço de raciocínio"
+            "reasoning_effort": "Esforço de raciocínio",
+            "show_reasoning": "Mostrar raciocínio"
           },
           "data_description": {
             "model": "O modelo a utilizar para o agente de conversação",
             "prompt": "Indicar como o LLM deve responder. Pode ser um modelo.",
-            "reasoning_effort": "O quanto os modelos de raciocínio pensam antes de responder. 'Model default' deixa sem definir; 'None' desativa o raciocínio."
+            "reasoning_effort": "O quanto os modelos de raciocínio pensam antes de responder. 'Model default' deixa sem definir; 'None' desativa o raciocínio.",
+            "show_reasoning": "Transmite a cadeia de raciocínio do modelo para a interface de chat (apenas modelos de raciocínio). Desativado por padrão: pode travar o chat do Assist em etapas com ferramentas. O modelo raciocina de qualquer forma."
           },
           "description": "Configurar o agente de conversação"
         }

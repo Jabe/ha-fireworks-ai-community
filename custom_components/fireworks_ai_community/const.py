@@ -24,6 +24,11 @@ REASONING_EFFORT_OPTIONS = ("none", "low", "medium", "high", "max")
 # applied when reasoning is explicitly enabled, so it never caps other models.
 REASONING_MAX_TOKENS = 16000
 
+# Whether to surface the reasoning chain as thinking_content in the UI. Off by
+# default: streaming it stalls the Assist chat UI on tool-using turns, and the
+# reasoning improves the answer whether or not it is shown.
+CONF_SHOW_REASONING = "show_reasoning"
+
 # Fireworks AI's OpenAI-compatible chat completions endpoint. This is the only
 # base URL used in v1 (conversation + AI Task).
 CHAT_BASE_URL = "https://api.fireworks.ai/inference/v1"

@@ -31,6 +31,7 @@ from .const import (
     CHAT_BASE_URL,
     CONF_PROMPT,
     CONF_REASONING_EFFORT,
+    CONF_SHOW_REASONING,
     DOMAIN,
     REASONING_EFFORT_DEFAULT,
     REASONING_EFFORT_OPTIONS,
@@ -73,20 +74,28 @@ def _reasoning_effort_selector() -> SelectSelector:
     )
 
 
-def _persist_reasoning_effort(
+# Advanced-only fields and the default value that should never be persisted.
+_ADVANCED_FIELD_DEFAULTS = {
+    CONF_REASONING_EFFORT: REASONING_EFFORT_DEFAULT,
+    CONF_SHOW_REASONING: False,
+}
+
+
+def _persist_advanced_fields(
     user_input: dict[str, Any], options: dict[str, Any]
 ) -> None:
-    """Normalise the advanced-only reasoning_effort field before saving.
+    """Normalise the advanced-only fields before saving.
 
-    Drops the "model default" sentinel so it is never stored, and carries a
+    Drops a field left at its default so it is never stored, and carries a
     previously-set value over when the field was hidden (advanced mode off), so
     reconfiguring without advanced mode does not wipe it.
     """
-    if CONF_REASONING_EFFORT in user_input:
-        if user_input[CONF_REASONING_EFFORT] == REASONING_EFFORT_DEFAULT:
-            user_input.pop(CONF_REASONING_EFFORT)
-    elif CONF_REASONING_EFFORT in options:
-        user_input[CONF_REASONING_EFFORT] = options[CONF_REASONING_EFFORT]
+    for field, default in _ADVANCED_FIELD_DEFAULTS.items():
+        if field in user_input:
+            if user_input[field] == default:
+                user_input.pop(field)
+        elif field in options:
+            user_input[field] = options[field]
 
 
 class FireworksConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -207,7 +216,7 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
         if user_input is not None:
             if not user_input.get(CONF_LLM_HASS_API):
                 user_input.pop(CONF_LLM_HASS_API, None)
-            _persist_reasoning_effort(user_input, self.options)
+            _persist_advanced_fields(user_input, self.options)
             if self._is_new:
                 return self.async_create_entry(
                     title=_model_label(user_input[CONF_MODEL]), data=user_input
@@ -276,7 +285,7 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
                     ): SelectSelector(
                         SelectSelectorConfig(options=hass_apis, multiple=True)
                     ),
-                    # Advanced-only: most users never touch reasoning effort.
+                    # Advanced-only: most users never touch these.
                     **(
                         {
                             vol.Optional(
@@ -284,7 +293,11 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
                                 default=self.options.get(
                                     CONF_REASONING_EFFORT, REASONING_EFFORT_DEFAULT
                                 ),
-                            ): _reasoning_effort_selector()
+                            ): _reasoning_effort_selector(),
+                            vol.Optional(
+                                CONF_SHOW_REASONING,
+                                default=self.options.get(CONF_SHOW_REASONING, False),
+                            ): bool,
                         }
                         if self.show_advanced_options
                         else {}
@@ -329,7 +342,7 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
             return self.async_abort(reason="entry_not_loaded")
 
         if user_input is not None:
-            _persist_reasoning_effort(user_input, self.options)
+            _persist_advanced_fields(user_input, self.options)
             if self._is_new:
                 return self.async_create_entry(
                     title=_model_label(user_input[CONF_MODEL]), data=user_input
@@ -369,7 +382,7 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
                             custom_value=True,
                         ),
                     ),
-                    # Advanced-only: most users never touch reasoning effort.
+                    # Advanced-only: most users never touch these.
                     **(
                         {
                             vol.Optional(
@@ -377,7 +390,11 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
                                 default=self.options.get(
                                     CONF_REASONING_EFFORT, REASONING_EFFORT_DEFAULT
                                 ),
-                            ): _reasoning_effort_selector()
+                            ): _reasoning_effort_selector(),
+                            vol.Optional(
+                                CONF_SHOW_REASONING,
+                                default=self.options.get(CONF_SHOW_REASONING, False),
+                            ): bool,
                         }
                         if self.show_advanced_options
                         else {}

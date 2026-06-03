@@ -33,11 +33,13 @@
         "init": {
           "data": {
             "model": "模型",
-            "reasoning_effort": "推理强度"
+            "reasoning_effort": "推理强度",
+            "show_reasoning": "显示推理"
           },
           "description": "配置人工智能任务",
           "data_description": {
-            "reasoning_effort": "推理模型在回答前思考的程度。'Model default' 保持不变；'None' 关闭推理。"
+            "reasoning_effort": "推理模型在回答前思考的程度。'Model default' 保持不变；'None' 关闭推理。",
+            "show_reasoning": "将模型的思维链流式传输到聊天界面（仅推理模型）。默认关闭——在使用工具的步骤中可能导致 Assist 聊天卡住。无论是否显示，模型都会推理。"
           }
         }
       }
@@ -58,12 +60,14 @@
             "llm_hass_api": "控制 Home Assistant",
             "model": "模型",
             "prompt": "指导",
-            "reasoning_effort": "推理强度"
+            "reasoning_effort": "推理强度",
+            "show_reasoning": "显示推理"
           },
           "data_description": {
             "model": "用于对话代理的模型",
             "prompt": "指导 LLM 应如何响应。这可以是模板。",
-            "reasoning_effort": "推理模型在回答前思考的程度。'Model default' 保持不变；'None' 关闭推理。"
+            "reasoning_effort": "推理模型在回答前思考的程度。'Model default' 保持不变；'None' 关闭推理。",
+            "show_reasoning": "将模型的思维链流式传输到聊天界面（仅推理模型）。默认关闭——在使用工具的步骤中可能导致 Assist 聊天卡住。无论是否显示，模型都会推理。"
           },
           "description": "配置对话代理"
         }

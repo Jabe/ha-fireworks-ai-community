@@ -33,10 +33,12 @@
           "data": {
             "llm_hass_api": "Beheer Home Assistant",
             "prompt": "Instructies",
-            "reasoning_effort": "Redeneerinspanning"
+            "reasoning_effort": "Redeneerinspanning",
+            "show_reasoning": "Redenering tonen"
           },
           "data_description": {
-            "reasoning_effort": "Hoe hard redeneermodellen nadenken voordat ze antwoorden. 'Model default' laat het ongewijzigd; 'None' schakelt redeneren uit."
+            "reasoning_effort": "Hoe hard redeneermodellen nadenken voordat ze antwoorden. 'Model default' laat het ongewijzigd; 'None' schakelt redeneren uit.",
+            "show_reasoning": "Stream de gedachtegang van het model naar de chat-UI (alleen redeneermodellen). Standaard uit — kan de Assist-chat laten vastlopen bij tool-stappen. Het model redeneert hoe dan ook."
           }
         }
       }
