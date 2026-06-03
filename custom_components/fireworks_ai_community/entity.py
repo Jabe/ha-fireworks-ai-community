@@ -159,11 +159,12 @@ async def _transform_stream(
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform a Fireworks streaming response into ChatLog deltas.
 
-    Emits the role once, then content fragments as they arrive (so the Assist
-    pipeline can begin speaking before generation finishes), and finally the
-    fully-assembled tool calls. Tool-call arguments stream in fragments keyed by
-    index and must be buffered until complete: ChatLog dispatches a tool the
-    moment it sees a ToolInput, so a partial would fire a malformed call.
+    Emits the role once, then reasoning (as thinking_content) and answer text (as
+    content) fragments as they arrive — so the Assist pipeline can start speaking
+    the answer before generation finishes — and finally the fully-assembled tool
+    calls. Tool-call arguments stream in fragments keyed by index and must be
+    buffered until complete: ChatLog dispatches a tool the moment it sees a
+    ToolInput, so a partial would fire a malformed call.
     """
     yield {"role": "assistant"}
 
@@ -173,6 +174,14 @@ async def _transform_stream(
         if not chunk.choices:
             continue
         delta = chunk.choices[0].delta
+
+        # Reasoning models stream their chain of thought in a non-standard
+        # `reasoning_content` field (content stays None until the answer lands).
+        # Surface it as thinking_content so ChatLog keeps it apart from the spoken
+        # answer — the pipeline can show it, but TTS only voices `content`.
+        extra = delta.model_extra or {}
+        if reasoning := extra.get("reasoning_content") or extra.get("reasoning"):
+            yield {"thinking_content": reasoning}
 
         if delta.content:
             yield {"content": delta.content}
