@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING, Any, Literal
 import openai
 from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
+    ChatCompletionChunk,
     ChatCompletionContentPartImageParam,
     ChatCompletionFunctionToolParam,
-    ChatCompletionMessage,
     ChatCompletionMessageFunctionToolCallParam,
     ChatCompletionMessageParam,
     ChatCompletionSystemMessageParam,
@@ -154,25 +154,51 @@ def _decode_tool_arguments(arguments: str) -> Any:
         raise HomeAssistantError(f"Unexpected tool argument response: {err}") from err
 
 
-async def _transform_response(
-    message: ChatCompletionMessage,
+async def _transform_stream(
+    stream: openai.AsyncStream[ChatCompletionChunk],
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
-    """Transform the Fireworks message to a ChatLog format."""
-    data: conversation.AssistantContentDeltaDict = {
-        "role": message.role,
-        "content": message.content,
-    }
-    if message.tool_calls:
-        data["tool_calls"] = [
-            llm.ToolInput(
-                id=tool_call.id,
-                tool_name=tool_call.function.name,
-                tool_args=_decode_tool_arguments(tool_call.function.arguments),
+    """Transform a Fireworks streaming response into ChatLog deltas.
+
+    Emits the role once, then content fragments as they arrive (so the Assist
+    pipeline can begin speaking before generation finishes), and finally the
+    fully-assembled tool calls. Tool-call arguments stream in fragments keyed by
+    index and must be buffered until complete: ChatLog dispatches a tool the
+    moment it sees a ToolInput, so a partial would fire a malformed call.
+    """
+    yield {"role": "assistant"}
+
+    tool_calls: dict[int, dict[str, str]] = {}
+
+    async for chunk in stream:
+        if not chunk.choices:
+            continue
+        delta = chunk.choices[0].delta
+
+        if delta.content:
+            yield {"content": delta.content}
+
+        for tool_call in delta.tool_calls or []:
+            buffer = tool_calls.setdefault(
+                tool_call.index, {"id": "", "name": "", "arguments": ""}
             )
-            for tool_call in message.tool_calls
-            if tool_call.type == "function"
-        ]
-    yield data
+            if tool_call.id:
+                buffer["id"] = tool_call.id
+            if tool_call.function and tool_call.function.name:
+                buffer["name"] = tool_call.function.name
+            if tool_call.function and tool_call.function.arguments:
+                buffer["arguments"] += tool_call.function.arguments
+
+    if tool_calls:
+        yield {
+            "tool_calls": [
+                llm.ToolInput(
+                    id=buffer["id"],
+                    tool_name=buffer["name"],
+                    tool_args=_decode_tool_arguments(buffer["arguments"] or "{}"),
+                )
+                for _, buffer in sorted(tool_calls.items())
+            ]
+        }
 
 
 async def async_prepare_files_for_prompt(
@@ -290,25 +316,20 @@ class FireworksEntity(Entity):
 
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
-                result = await client.chat.completions.create(**model_args)
+                result = await client.chat.completions.create(**model_args, stream=True)
+
+                model_args["messages"].extend(
+                    [
+                        msg
+                        async for content in chat_log.async_add_delta_content_stream(
+                            self.entity_id, _transform_stream(result)
+                        )
+                        if (msg := _convert_content_to_chat_message(content))
+                    ]
+                )
             except openai.OpenAIError as err:
                 LOGGER.error("Error talking to API: %s", err)
                 raise HomeAssistantError("Error talking to API") from err
 
-            if not result.choices:
-                LOGGER.error("API returned empty choices")
-                raise HomeAssistantError("API returned empty response")
-
-            result_message = result.choices[0].message
-
-            model_args["messages"].extend(
-                [
-                    msg
-                    async for content in chat_log.async_add_delta_content_stream(
-                        self.entity_id, _transform_response(result_message)
-                    )
-                    if (msg := _convert_content_to_chat_message(content))
-                ]
-            )
             if not chat_log.unresponded_tool_results:
                 break

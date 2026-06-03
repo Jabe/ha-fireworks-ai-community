@@ -36,13 +36,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: FireworksConfigEntry) ->
         base_url=CHAT_BASE_URL,
         api_key=entry.data[CONF_API_KEY],
         http_client=get_async_client(hass),
-        # Bound a stalled completion instead of inheriting the SDK's 600 s
-        # default. The Assist pipeline puts no timeout around the conversation
-        # stage (it just awaits conversation.async_converse), so on a Wyoming
-        # satellite a stall would otherwise keep the pipeline busy for ~10 min.
-        # 120 s leaves headroom for slow reasoning models; max_retries=1 keeps a
-        # stall from stacking that wait ~3x.
-        timeout=httpx.Timeout(120.0, connect=5.0),
+        # Bound a stalled stream instead of inheriting the SDK's 600 s default.
+        # Responses are streamed, so this read timeout applies *between* chunks
+        # (per token), not to the whole generation — 30 s catches a dead stream
+        # fast while easily covering time-to-first-token even on a cold or queued
+        # reasoning model. The Assist pipeline puts no timeout around the
+        # conversation stage (it just awaits conversation.async_converse), so on a
+        # Wyoming satellite this is the only backstop against a multi-minute
+        # freeze. max_retries=1 keeps a stall from stacking that wait ~3x.
+        timeout=httpx.Timeout(30.0, connect=5.0),
         max_retries=1,
     )
 
