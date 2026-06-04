@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator, Callable
 import json
 from mimetypes import guess_file_type
 from pathlib import Path
+import time
 from typing import TYPE_CHECKING, Any, Literal
 
 import openai
@@ -185,17 +186,38 @@ async def _transform_stream(
 
     tool_calls: dict[int, dict[str, str]] = {}
 
+    # Diagnostics for slow turns: time-to-first-chunk and reasoning volume tell a
+    # turn dominated by server-side thinking (high reasoning_chars) apart from an
+    # infrastructure stall (high TTFC, little reasoning). Reasoning length is
+    # tallied even when not surfaced, so `show_reasoning=False` turns stay
+    # measurable. Pair this with the `create()` timing in _async_handle_chat_log:
+    # a long create() means the SSE stream only opened after thinking finished.
+    start = time.monotonic()
+    first_chunk_at: float | None = None
+    first_content_at: float | None = None
+    reasoning_chars = 0
+    content_chars = 0
+    chunk_count = 0
+
     async for chunk in stream:
+        if first_chunk_at is None:
+            first_chunk_at = time.monotonic() - start
+        chunk_count += 1
+
         if not chunk.choices:
             continue
         delta = chunk.choices[0].delta
 
-        if show_reasoning:
-            extra = delta.model_extra or {}
-            if reasoning := extra.get("reasoning_content") or extra.get("reasoning"):
+        extra = delta.model_extra or {}
+        if reasoning := extra.get("reasoning_content") or extra.get("reasoning"):
+            reasoning_chars += len(reasoning)
+            if show_reasoning:
                 yield {"thinking_content": reasoning}
 
         if delta.content:
+            if first_content_at is None:
+                first_content_at = time.monotonic() - start
+            content_chars += len(delta.content)
             yield {"content": delta.content}
 
         for tool_call in delta.tool_calls or []:
@@ -208,6 +230,18 @@ async def _transform_stream(
                 buffer["name"] = tool_call.function.name
             if tool_call.function and tool_call.function.arguments:
                 buffer["arguments"] += tool_call.function.arguments
+
+    LOGGER.debug(
+        "Fireworks stream: ttfc=%.2fs ttf_content=%s total=%.2fs chunks=%d "
+        "reasoning_chars=%d content_chars=%d tool_calls=%d",
+        first_chunk_at if first_chunk_at is not None else -1.0,
+        f"{first_content_at:.2f}s" if first_content_at is not None else "none",
+        time.monotonic() - start,
+        chunk_count,
+        reasoning_chars,
+        content_chars,
+        len(tool_calls),
+    )
 
     if tool_calls:
         yield {
@@ -347,7 +381,17 @@ class FireworksEntity(Entity):
 
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
+                create_start = time.monotonic()
                 result = await client.chat.completions.create(**model_args, stream=True)
+                LOGGER.debug(
+                    "Fireworks create() returned in %.2fs "
+                    "(model=%s, reasoning_effort=%s, max_tokens=%s, tools=%d)",
+                    time.monotonic() - create_start,
+                    self.model,
+                    model_args.get("reasoning_effort", "<unset>"),
+                    model_args.get("max_tokens", "<unset>"),
+                    len(model_args.get("tools", [])),
+                )
 
                 model_args["messages"].extend(
                     [
