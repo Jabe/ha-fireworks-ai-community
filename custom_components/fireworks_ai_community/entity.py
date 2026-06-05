@@ -1,5 +1,6 @@
 """Base entity for Fireworks AI."""
 
+import asyncio
 import base64
 from collections.abc import AsyncGenerator, Callable
 import json
@@ -258,8 +259,14 @@ async def _transform_stream(
             if tool_call.function and tool_call.function.arguments:
                 buffer["arguments"] += tool_call.function.arguments
 
-    # Flush any content held back by the slow-mode throttle (no-op otherwise).
+    # Flush any content held back by the slow-mode throttle. Hold it to the same
+    # minimum gap: the markdown web worker has no last-write-wins guard, so a tail
+    # flush landing right behind the previous one can lose the race and freeze the
+    # chat mid-sentence. (No-op when not in slow mode: content_buffer stays empty.)
     if content_buffer:
+        gap = time.monotonic() - last_flush
+        if gap < SLOW_STREAM_FLUSH_INTERVAL:
+            await asyncio.sleep(SLOW_STREAM_FLUSH_INTERVAL - gap)
         yield {"content": content_buffer}
 
     LOGGER.debug(
