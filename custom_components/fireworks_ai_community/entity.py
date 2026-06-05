@@ -8,6 +8,7 @@ from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any, Literal
 
+import httpx
 import openai
 from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
@@ -37,6 +38,8 @@ from homeassistant.helpers.json import json_dumps
 
 from . import FireworksConfigEntry
 from .const import (
+    CHAT_CONNECT_TIMEOUT,
+    CHAT_REQUEST_TIMEOUT,
     CONF_REASONING_EFFORT,
     CONF_SHOW_REASONING,
     DOMAIN,
@@ -382,7 +385,15 @@ class FireworksEntity(Entity):
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
                 create_start = time.monotonic()
-                result = await client.chat.completions.create(**model_args, stream=True)
+                # Disable retries here: a stalled stream that hits the read
+                # timeout must fail fast, not silently retry and stack into a
+                # multi-second freeze for the (often voice) caller.
+                result = await client.with_options(
+                    timeout=httpx.Timeout(
+                        CHAT_REQUEST_TIMEOUT, connect=CHAT_CONNECT_TIMEOUT
+                    ),
+                    max_retries=0,
+                ).chat.completions.create(**model_args, stream=True)
                 LOGGER.debug(
                     "Fireworks create() returned in %.2fs "
                     "(model=%s, reasoning_effort=%s, max_tokens=%s, tools=%d)",

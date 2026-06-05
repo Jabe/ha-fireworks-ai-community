@@ -29,6 +29,16 @@ REASONING_MAX_TOKENS = 16000
 # reasoning improves the answer whether or not it is shown.
 CONF_SHOW_REASONING = "show_reasoning"
 
+# Per-request bound for an interactive chat stream. The client already sets a
+# 30 s read timeout, but its default retries turn a stalled request into a
+# silent ~2x wait: a 30 s timeout plus one retry lands at ~33 s, which is the
+# "hang" seen in the field (and it surfaces as a slow success, not an error,
+# because the retry goes through). On the conversation / AI-task path we restate
+# the timeout and disable retries so a dead stream fails promptly instead of
+# stacking into a multi-second freeze.
+CHAT_REQUEST_TIMEOUT = 30.0
+CHAT_CONNECT_TIMEOUT = 5.0
+
 # Fireworks AI's OpenAI-compatible chat completions endpoint. This is the only
 # base URL used in v1 (conversation + AI Task).
 CHAT_BASE_URL = "https://api.fireworks.ai/inference/v1"
