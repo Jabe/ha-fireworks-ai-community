@@ -189,12 +189,15 @@ async def _transform_stream(
     but streaming it makes the Assist chat UI stall on tool-using turns (a message
     with thinking but no content yet), so it is opt-in.
 
-    When ``slow_stream`` is set, answer text is coalesced into at most one content
-    delta per ``SLOW_STREAM_FLUSH_INTERVAL`` instead of one per token. Fireworks
-    streams tokens far faster than the Assist chat UI's async markdown renderer
-    can keep up with, and a stale render can overwrite the final one and leave the
-    chat stuck on "…"; pacing the deltas keeps the renderer from racing itself.
-    The assembled content (and therefore the TTS stream) is unchanged.
+    When ``slow_stream`` is set, both the answer text and (when shown) the
+    chain of thought are coalesced into at most one delta per
+    ``SLOW_STREAM_FLUSH_INTERVAL`` instead of one per token. Fireworks streams
+    tokens far faster than the Assist chat UI's async markdown renderer can keep
+    up with, and a stale render can overwrite the final one and leave the chat
+    stuck on "…"; pacing the deltas keeps the renderer from racing itself. The
+    thinking stream needs the same pacing as the answer — on a low-effort
+    reasoning turn it is by far the larger firehose. The assembled content (and
+    therefore the TTS stream) is unchanged.
     """
     yield {"role": "assistant"}
 
@@ -213,11 +216,15 @@ async def _transform_stream(
     content_chars = 0
     chunk_count = 0
 
-    # Slow mode: coalesce the token firehose into at most one content delta per
-    # SLOW_STREAM_FLUSH_INTERVAL. last_flush starts at 0.0 so the first token
-    # paints immediately; whatever is left is flushed after the loop.
+    # Slow mode: coalesce each token firehose into at most one delta per
+    # SLOW_STREAM_FLUSH_INTERVAL. Thinking and answer text are separate streams
+    # (and separate UI elements), so each gets its own buffer and flush clock.
+    # last_*_flush starts at 0.0 so the first token paints immediately; whatever
+    # is left is flushed after the loop.
     content_buffer = ""
     last_flush = 0.0
+    thinking_buffer = ""
+    last_thinking_flush = 0.0
 
     async for chunk in stream:
         if first_chunk_at is None:
@@ -232,9 +239,22 @@ async def _transform_stream(
         if reasoning := extra.get("reasoning_content") or extra.get("reasoning"):
             reasoning_chars += len(reasoning)
             if show_reasoning:
-                yield {"thinking_content": reasoning}
+                if slow_stream:
+                    thinking_buffer += reasoning
+                    now = time.monotonic()
+                    if now - last_thinking_flush >= SLOW_STREAM_FLUSH_INTERVAL:
+                        yield {"thinking_content": thinking_buffer}
+                        thinking_buffer = ""
+                        last_thinking_flush = now
+                else:
+                    yield {"thinking_content": reasoning}
 
         if delta.content:
+            # Answer text started: the chain of thought is done. Flush any held
+            # thinking first so it can't trail in behind the answer.
+            if thinking_buffer:
+                yield {"thinking_content": thinking_buffer}
+                thinking_buffer = ""
             if first_content_at is None:
                 first_content_at = time.monotonic() - start
             content_chars += len(delta.content)
@@ -259,10 +279,17 @@ async def _transform_stream(
             if tool_call.function and tool_call.function.arguments:
                 buffer["arguments"] += tool_call.function.arguments
 
-    # Flush any content held back by the slow-mode throttle. Hold it to the same
+    # Flush anything held back by the slow-mode throttle, each held to the same
     # minimum gap: the markdown web worker has no last-write-wins guard, so a tail
     # flush landing right behind the previous one can lose the race and freeze the
-    # chat mid-sentence. (No-op when not in slow mode: content_buffer stays empty.)
+    # chat mid-render. (No-op when not in slow mode: the buffers stay empty.) The
+    # thinking tail only fires on a thinking-only turn, e.g. reasoning then a tool
+    # call with no answer text — otherwise it was flushed when content began.
+    if thinking_buffer:
+        gap = time.monotonic() - last_thinking_flush
+        if gap < SLOW_STREAM_FLUSH_INTERVAL:
+            await asyncio.sleep(SLOW_STREAM_FLUSH_INTERVAL - gap)
+        yield {"thinking_content": thinking_buffer}
     if content_buffer:
         gap = time.monotonic() - last_flush
         if gap < SLOW_STREAM_FLUSH_INTERVAL:
