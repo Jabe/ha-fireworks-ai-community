@@ -32,6 +32,7 @@ from .const import (
     CONF_PROMPT,
     CONF_REASONING_EFFORT,
     CONF_SHOW_REASONING,
+    CONF_SLOW_STREAM,
     DOMAIN,
     REASONING_EFFORT_DEFAULT,
     REASONING_EFFORT_OPTIONS,
@@ -285,6 +286,12 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
                     ): SelectSelector(
                         SelectSelectorConfig(options=hass_apis, multiple=True)
                     ),
+                    # Workaround for a chat-UI render race on very fast streams;
+                    # kept visible (not advanced) so affected users can find it.
+                    vol.Optional(
+                        CONF_SLOW_STREAM,
+                        default=self.options.get(CONF_SLOW_STREAM, False),
+                    ): bool,
                     # Advanced-only: most users never touch these.
                     **(
                         {

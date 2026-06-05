@@ -42,11 +42,13 @@ from .const import (
     CHAT_REQUEST_TIMEOUT,
     CONF_REASONING_EFFORT,
     CONF_SHOW_REASONING,
+    CONF_SLOW_STREAM,
     DOMAIN,
     LOGGER,
     REASONING_EFFORT_DEFAULT,
     REASONING_EFFORT_NONE,
     REASONING_MAX_TOKENS,
+    SLOW_STREAM_FLUSH_INTERVAL,
 )
 
 MAX_TOOL_ITERATIONS = 10
@@ -169,6 +171,7 @@ def _decode_tool_arguments(arguments: str) -> Any:
 async def _transform_stream(
     stream: openai.AsyncStream[ChatCompletionChunk],
     show_reasoning: bool,
+    slow_stream: bool,
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform a Fireworks streaming response into ChatLog deltas.
 
@@ -184,6 +187,13 @@ async def _transform_stream(
     Off by default: the reasoning still runs server-side and improves the answer,
     but streaming it makes the Assist chat UI stall on tool-using turns (a message
     with thinking but no content yet), so it is opt-in.
+
+    When ``slow_stream`` is set, answer text is coalesced into at most one content
+    delta per ``SLOW_STREAM_FLUSH_INTERVAL`` instead of one per token. Fireworks
+    streams tokens far faster than the Assist chat UI's async markdown renderer
+    can keep up with, and a stale render can overwrite the final one and leave the
+    chat stuck on "…"; pacing the deltas keeps the renderer from racing itself.
+    The assembled content (and therefore the TTS stream) is unchanged.
     """
     yield {"role": "assistant"}
 
@@ -201,6 +211,12 @@ async def _transform_stream(
     reasoning_chars = 0
     content_chars = 0
     chunk_count = 0
+
+    # Slow mode: coalesce the token firehose into at most one content delta per
+    # SLOW_STREAM_FLUSH_INTERVAL. last_flush starts at 0.0 so the first token
+    # paints immediately; whatever is left is flushed after the loop.
+    content_buffer = ""
+    last_flush = 0.0
 
     async for chunk in stream:
         if first_chunk_at is None:
@@ -221,7 +237,15 @@ async def _transform_stream(
             if first_content_at is None:
                 first_content_at = time.monotonic() - start
             content_chars += len(delta.content)
-            yield {"content": delta.content}
+            if slow_stream:
+                content_buffer += delta.content
+                now = time.monotonic()
+                if now - last_flush >= SLOW_STREAM_FLUSH_INTERVAL:
+                    yield {"content": content_buffer}
+                    content_buffer = ""
+                    last_flush = now
+            else:
+                yield {"content": delta.content}
 
         for tool_call in delta.tool_calls or []:
             buffer = tool_calls.setdefault(
@@ -233,6 +257,10 @@ async def _transform_stream(
                 buffer["name"] = tool_call.function.name
             if tool_call.function and tool_call.function.arguments:
                 buffer["arguments"] += tool_call.function.arguments
+
+    # Flush any content held back by the slow-mode throttle (no-op otherwise).
+    if content_buffer:
+        yield {"content": content_buffer}
 
     LOGGER.debug(
         "Fireworks stream: ttfc=%.2fs ttf_content=%s total=%.2fs chunks=%d "
@@ -381,6 +409,7 @@ class FireworksEntity(Entity):
 
         client = self.entry.runtime_data.chat
         show_reasoning = self.subentry.data.get(CONF_SHOW_REASONING, False)
+        slow_stream = self.subentry.data.get(CONF_SLOW_STREAM, False)
 
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
@@ -408,7 +437,8 @@ class FireworksEntity(Entity):
                     [
                         msg
                         async for content in chat_log.async_add_delta_content_stream(
-                            self.entity_id, _transform_stream(result, show_reasoning)
+                            self.entity_id,
+                            _transform_stream(result, show_reasoning, slow_stream),
                         )
                         if (msg := _convert_content_to_chat_message(content))
                     ]

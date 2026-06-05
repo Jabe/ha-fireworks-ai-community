@@ -65,6 +65,7 @@
             "llm_hass_api": "[%key:common::config_flow::data::llm_hass_api%]",
             "model": "[%key:common::generic::model%]",
             "prompt": "[%key:common::config_flow::data::prompt%]",
+            "slow_stream": "Slow streaming mode",
             "reasoning_effort": "Reasoning effort",
             "show_reasoning": "Show reasoning"
           },
@@ -72,6 +73,7 @@
             "llm_hass_api": "Select which tools the model can use to interact with your devices and entities.",
             "model": "The model to use for the conversation agent",
             "prompt": "Instruct how the LLM should respond. This can be a template.",
+            "slow_stream": "Turn this on if the Assist chat freezes on '…' after a reply. Fireworks streams tokens faster than the chat UI's markdown renderer can keep up with, and a stale render can hide the finished answer; this paces the stream to work around it. The answer and voice output are unchanged.",
             "reasoning_effort": "How hard reasoning models think before answering. 'Model default' leaves it unset; 'None' disables reasoning.",
             "show_reasoning": "Stream the model's chain of thought to the chat UI (reasoning models only). Off by default — it can make the Assist chat stall on tool-using turns. The model still reasons either way."
           },

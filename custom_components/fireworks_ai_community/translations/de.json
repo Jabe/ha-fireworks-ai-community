@@ -60,12 +60,14 @@
             "llm_hass_api": "Home Assistant steuern",
             "model": "Modell",
             "prompt": "Anweisungen",
+            "slow_stream": "Langsamer Streaming-Modus",
             "reasoning_effort": "Reasoning-Aufwand",
             "show_reasoning": "Reasoning anzeigen"
           },
           "data_description": {
             "model": "Das für den Konversationsagenten zu verwendende Modell",
             "prompt": "Gib an, wie das LLM antworten soll. Dies kann ein Template sein.",
+            "slow_stream": "Aktiviere dies, wenn der Assist-Chat nach einer Antwort auf '…' hängen bleibt. Fireworks streamt Tokens schneller, als der Markdown-Renderer des Chat-UI hinterherkommt, sodass ein veralteter Render die fertige Antwort verdecken kann; dies bremst den Stream als Workaround. Antwort und Sprachausgabe bleiben unverändert.",
             "reasoning_effort": "Wie intensiv Reasoning-Modelle vor der Antwort nachdenken. 'Model default' lässt es unverändert; 'None' schaltet Reasoning ab.",
             "show_reasoning": "Die Gedankenkette des Modells im Chat-UI streamen (nur Reasoning-Modelle). Standardmäßig aus — kann die Assist-Chat-Anzeige bei Tool-Schritten hängen lassen. Das Modell denkt so oder so."
           },
