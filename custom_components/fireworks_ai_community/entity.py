@@ -217,14 +217,15 @@ async def _transform_stream(
     chunk_count = 0
 
     # Slow mode: coalesce each token firehose into at most one delta per
-    # SLOW_STREAM_FLUSH_INTERVAL. Thinking and answer text are separate streams
-    # (and separate UI elements), so each gets its own buffer and flush clock.
-    # last_*_flush starts at 0.0 so the first token paints immediately; whatever
-    # is left is flushed after the loop.
+    # SLOW_STREAM_FLUSH_INTERVAL. Thinking and answer text get separate buffers
+    # but share ONE flush clock: the thinking->content boundary is itself a render
+    # pair, and a per-stream clock let the answer's first paint fire microseconds
+    # behind the last thinking flush (the freeze seen in the field). One clock
+    # makes the answer wait out the same gap after thinking ends. last_flush starts
+    # at 0.0 so the very first token paints immediately; the rest flushes post-loop.
     content_buffer = ""
-    last_flush = 0.0
     thinking_buffer = ""
-    last_thinking_flush = 0.0
+    last_flush = 0.0
 
     async for chunk in stream:
         if first_chunk_at is None:
@@ -242,19 +243,21 @@ async def _transform_stream(
                 if slow_stream:
                     thinking_buffer += reasoning
                     now = time.monotonic()
-                    if now - last_thinking_flush >= SLOW_STREAM_FLUSH_INTERVAL:
+                    if now - last_flush >= SLOW_STREAM_FLUSH_INTERVAL:
                         yield {"thinking_content": thinking_buffer}
                         thinking_buffer = ""
-                        last_thinking_flush = now
+                        last_flush = now
                 else:
                     yield {"thinking_content": reasoning}
 
         if delta.content:
             # Answer text started: the chain of thought is done. Flush any held
-            # thinking first so it can't trail in behind the answer.
+            # thinking and stamp the shared clock, so the answer's first paint
+            # waits out the same gap instead of landing right behind it.
             if thinking_buffer:
                 yield {"thinking_content": thinking_buffer}
                 thinking_buffer = ""
+                last_flush = time.monotonic()
             if first_content_at is None:
                 first_content_at = time.monotonic() - start
             content_chars += len(delta.content)
@@ -286,7 +289,7 @@ async def _transform_stream(
     # thinking tail only fires on a thinking-only turn, e.g. reasoning then a tool
     # call with no answer text — otherwise it was flushed when content began.
     if thinking_buffer:
-        gap = time.monotonic() - last_thinking_flush
+        gap = time.monotonic() - last_flush
         if gap < SLOW_STREAM_FLUSH_INTERVAL:
             await asyncio.sleep(SLOW_STREAM_FLUSH_INTERVAL - gap)
         yield {"thinking_content": thinking_buffer}
