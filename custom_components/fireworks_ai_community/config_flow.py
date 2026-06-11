@@ -170,7 +170,11 @@ class FireworksSubentryFlowHandler(ConfigSubentryFlow):
             api_key=entry.data[CONF_API_KEY],
             http_client=get_async_client(self.hass),
         )
-        self.model_ids = [model.id async for model in client.models.list()]
+        # Same bound as the other validation calls; without it a hung API
+        # stalls the form for the SDK's 600 s default.
+        self.model_ids = [
+            model.id async for model in client.with_options(timeout=10.0).models.list()
+        ]
 
     def _model_options(self) -> list[SelectOptionDict]:
         """Build the model dropdown options."""

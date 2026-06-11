@@ -227,6 +227,17 @@ async def _transform_stream(
     thinking_buffer = ""
     last_flush = 0.0
 
+    async def _hold_flush_gap() -> None:
+        """Sleep out the remainder of the flush interval since the last flush.
+
+        Every slow-mode flush that isn't already gated by the clock check must
+        wait this out before yielding, or it lands right behind the previous
+        render and re-creates the race the throttle exists to prevent.
+        """
+        gap = time.monotonic() - last_flush
+        if gap < SLOW_STREAM_FLUSH_INTERVAL:
+            await asyncio.sleep(SLOW_STREAM_FLUSH_INTERVAL - gap)
+
     async for chunk in stream:
         if first_chunk_at is None:
             first_chunk_at = time.monotonic() - start
@@ -252,9 +263,11 @@ async def _transform_stream(
 
         if delta.content:
             # Answer text started: the chain of thought is done. Flush any held
-            # thinking and stamp the shared clock, so the answer's first paint
-            # waits out the same gap instead of landing right behind it.
+            # thinking — held to the minimum gap itself, or it can land right
+            # behind the previous thinking flush — and stamp the shared clock,
+            # so the answer's first paint waits out the same gap too.
             if thinking_buffer:
+                await _hold_flush_gap()
                 yield {"thinking_content": thinking_buffer}
                 thinking_buffer = ""
                 last_flush = time.monotonic()
@@ -289,14 +302,11 @@ async def _transform_stream(
     # thinking tail only fires on a thinking-only turn, e.g. reasoning then a tool
     # call with no answer text — otherwise it was flushed when content began.
     if thinking_buffer:
-        gap = time.monotonic() - last_flush
-        if gap < SLOW_STREAM_FLUSH_INTERVAL:
-            await asyncio.sleep(SLOW_STREAM_FLUSH_INTERVAL - gap)
+        await _hold_flush_gap()
         yield {"thinking_content": thinking_buffer}
+        last_flush = time.monotonic()
     if content_buffer:
-        gap = time.monotonic() - last_flush
-        if gap < SLOW_STREAM_FLUSH_INTERVAL:
-            await asyncio.sleep(SLOW_STREAM_FLUSH_INTERVAL - gap)
+        await _hold_flush_gap()
         yield {"content": content_buffer}
 
     LOGGER.debug(
