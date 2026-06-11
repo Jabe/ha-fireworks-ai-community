@@ -60,12 +60,14 @@
             "llm_hass_api": "Contrôler Home Assistant",
             "model": "Modèle",
             "prompt": "Instructions",
+            "slow_stream": "Mode de streaming lent",
             "reasoning_effort": "Effort de raisonnement",
             "show_reasoning": "Afficher le raisonnement"
           },
           "data_description": {
             "model": "Le modèle à utiliser pour l'agent de conversation",
             "prompt": "Indiquer comment le LLM doit répondre. Il peut s'agir d'un modèle.",
+            "slow_stream": "Activez cette option si le chat Assist reste bloqué sur '…' après une réponse. Fireworks diffuse les tokens plus vite que le moteur de rendu Markdown de l'interface de chat ne peut suivre, et un rendu obsolète peut masquer la réponse terminée ; ceci ralentit le flux pour contourner le problème. La réponse et la sortie vocale restent inchangées.",
             "reasoning_effort": "À quel point les modèles de raisonnement réfléchissent avant de répondre. 'Model default' le laisse non défini ; 'None' désactive le raisonnement.",
             "show_reasoning": "Diffuse le raisonnement du modèle dans l'interface de chat (modèles de raisonnement uniquement). Désactivé par défaut : peut bloquer le chat Assist lors des étapes avec outils. Le modèle raisonne dans tous les cas."
           },

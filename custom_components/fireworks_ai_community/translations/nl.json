@@ -33,10 +33,12 @@
           "data": {
             "llm_hass_api": "Beheer Home Assistant",
             "prompt": "Instructies",
+            "slow_stream": "Langzame streamingmodus",
             "reasoning_effort": "Redeneerinspanning",
             "show_reasoning": "Redenering tonen"
           },
           "data_description": {
+            "slow_stream": "Schakel dit in als de Assist-chat na een antwoord blijft hangen op '…'. Fireworks streamt tokens sneller dan de Markdown-renderer van de chat-UI kan bijhouden, en een verouderde weergave kan het voltooide antwoord verbergen; dit vertraagt de stream als workaround. Het antwoord en de spraakuitvoer blijven ongewijzigd.",
             "reasoning_effort": "Hoe hard redeneermodellen nadenken voordat ze antwoorden. 'Model default' laat het ongewijzigd; 'None' schakelt redeneren uit.",
             "show_reasoning": "Stream de gedachtegang van het model naar de chat-UI (alleen redeneermodellen). Standaard uit — kan de Assist-chat laten vastlopen bij tool-stappen. Het model redeneert hoe dan ook."
           }

@@ -60,12 +60,14 @@
             "llm_hass_api": "控制 Home Assistant",
             "model": "模型",
             "prompt": "指导",
+            "slow_stream": "慢速流式传输模式",
             "reasoning_effort": "推理强度",
             "show_reasoning": "显示推理"
           },
           "data_description": {
             "model": "用于对话代理的模型",
             "prompt": "指导 LLM 应如何响应。这可以是模板。",
+            "slow_stream": "如果 Assist 聊天在回复后卡在“…”，请开启此选项。Fireworks 输出 token 的速度超过聊天界面 Markdown 渲染器的处理能力，过时的渲染可能会遮盖已完成的回答；此选项会放慢流式输出以规避该问题。回答内容和语音输出不变。",
             "reasoning_effort": "推理模型在回答前思考的程度。'Model default' 保持不变；'None' 关闭推理。",
             "show_reasoning": "将模型的思维链流式传输到聊天界面（仅推理模型）。默认关闭——在使用工具的步骤中可能导致 Assist 聊天卡住。无论是否显示，模型都会推理。"
           },
