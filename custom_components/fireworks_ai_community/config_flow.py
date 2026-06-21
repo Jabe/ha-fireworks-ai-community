@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from openai import AsyncOpenAI, AuthenticationError, OpenAIError
+from openai import AsyncOpenAI, APIStatusError, AuthenticationError, OpenAIError
 import voluptuous as vol
 
 from homeassistant.config_entries import (
@@ -133,12 +133,21 @@ class FireworksConfigFlow(ConfigFlow, domain=DOMAIN):
                     break
             except AuthenticationError:
                 errors["base"] = "invalid_auth"
+            except APIStatusError as err:
+                # A 5xx on the model-listing endpoint doesn't mean the key is
+                # bad or the service is down: Fireworks' deployed-models endpoint
+                # intermittently 500s for valid keys ("Error listing deployed
+                # models"). The key already cleared auth (else AuthenticationError
+                # above), so accept it — the entry's own setup tolerates the same
+                # error. Non-5xx status errors keep failing as cannot_connect.
+                if err.response.status_code < 500:
+                    errors["base"] = "cannot_connect"
             except OpenAIError:
                 errors["base"] = "cannot_connect"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
-            else:
+            if not errors:
                 # Fireworks has no key-label endpoint, so use a static title.
                 return self.async_create_entry(
                     title="Fireworks AI",
@@ -172,9 +181,26 @@ class FireworksSubentryFlowHandler(ConfigSubentryFlow):
         )
         # Same bound as the other validation calls; without it a hung API
         # stalls the form for the SDK's 600 s default.
-        self.model_ids = [
-            model.id async for model in client.with_options(timeout=10.0).models.list()
-        ]
+        try:
+            self.model_ids = [
+                model.id
+                async for model in client.with_options(timeout=10.0).models.list()
+            ]
+        except APIStatusError as err:
+            # Fireworks' deployed-models endpoint intermittently 500s for valid
+            # keys. The model field accepts any catalog id typed by hand
+            # (custom_value=True), so degrade to an empty list and let the form
+            # render instead of aborting the whole flow. Non-5xx errors still
+            # propagate (the caller maps them to cannot_connect).
+            if err.response.status_code < 500:
+                raise
+            _LOGGER.warning(
+                "Fireworks model listing returned HTTP %s; showing the form "
+                "without a prefilled model list (type the id manually): %s",
+                err.response.status_code,
+                err,
+            )
+            self.model_ids = []
 
     def _model_options(self) -> list[SelectOptionDict]:
         """Build the model dropdown options."""
