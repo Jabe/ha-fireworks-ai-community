@@ -63,6 +63,12 @@ CHAT_CONNECT_TIMEOUT = 5.0
 # base URL used in v1 (conversation + AI Task).
 CHAT_BASE_URL = "https://api.fireworks.ai/inference/v1"
 
+# Gateway REST API for the public serverless model catalog. Do not use the
+# OpenAI-compatible /inference/v1/models endpoint for discovery — it lists the
+# caller's deployed models and 500s for serverless-only accounts.
+MODELS_BASE_URL = "https://api.fireworks.ai"
+MODELS_LIST_TIMEOUT = 10.0
+
 # Reserved expansion points for future platforms (STT / image generation).
 # Fireworks serves audio on separate hosts from chat, so these are kept out of
 # CHAT_BASE_URL. Documented here only so the next platform is isolated; they are

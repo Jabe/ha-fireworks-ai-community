@@ -47,15 +47,15 @@ The architecture reserves clean extension points for STT and image generation.
 
 ## Configuration
 
-- **API key** — your Fireworks AI key, validated on setup against the Fireworks
-  models endpoint.
-- **Model** (per subentry) — the dropdown comes from Fireworks' `/v1/models`
-  response, which is a **curated subset**: many serverless models are missing
-  from it even though they are callable. So you can also **type any model ID**
-  directly — e.g. `accounts/fireworks/models/<name>` from the
-  [model catalog][fireworks-models]. Serverless models work immediately by ID
-  whether or not they appear in the list; non-serverless catalog models must
-  first have an [on-demand deployment][fireworks-ondemand] in your account.
+- **API key** — your Fireworks AI key, validated on setup against Fireworks'
+  serverless model catalog.
+- **Model** (per subentry) — the dropdown comes from Fireworks' Gateway
+  `List Models` API (`supports_serverless=true`). The catalog can lag the
+  public [model library][fireworks-models], so you can also **type any model ID**
+  directly — e.g. `accounts/fireworks/models/<name>`. Serverless models work
+  immediately by ID whether or not they appear in the list; non-serverless
+  catalog models must first have an [on-demand deployment][fireworks-ondemand]
+  in your account.
 - **Prompt** / **LLM tools** (conversation) — standard Assist options.
 
 ## Development

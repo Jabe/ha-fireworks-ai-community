@@ -3,7 +3,6 @@
 import logging
 from typing import Any
 
-from openai import AsyncOpenAI, APIStatusError, AuthenticationError, OpenAIError
 import voluptuous as vol
 
 from homeassistant.config_entries import (
@@ -18,7 +17,6 @@ from homeassistant.config_entries import (
 from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_MODEL
 from homeassistant.core import callback
 from homeassistant.helpers import llm
-from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
@@ -28,7 +26,6 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
-    CHAT_BASE_URL,
     CONF_PROMPT,
     CONF_REASONING_EFFORT,
     CONF_SHOW_REASONING,
@@ -37,6 +34,11 @@ from .const import (
     REASONING_EFFORT_DEFAULT,
     REASONING_EFFORT_OPTIONS,
     RECOMMENDED_CONVERSATION_OPTIONS,
+)
+from .models_api import (
+    FireworksApiError,
+    FireworksAuthError,
+    async_fetch_serverless_model_ids,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -123,27 +125,15 @@ class FireworksConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             self._async_abort_entries_match(user_input)
-            client = AsyncOpenAI(
-                base_url=CHAT_BASE_URL,
-                api_key=user_input[CONF_API_KEY],
-                http_client=get_async_client(self.hass),
-            )
             try:
-                async for _ in client.with_options(timeout=10.0).models.list():
-                    break
-            except AuthenticationError:
+                await async_fetch_serverless_model_ids(
+                    self.hass, user_input[CONF_API_KEY], limit=1
+                )
+            except FireworksAuthError:
                 errors["base"] = "invalid_auth"
-            except APIStatusError as err:
-                # A 5xx on the model-listing endpoint doesn't mean the key is
-                # bad or the service is down: Fireworks' deployed-models endpoint
-                # intermittently 500s for valid keys ("Error listing deployed
-                # models"). The key already cleared auth (else AuthenticationError
-                # above), so accept it — the entry's own setup tolerates the same
-                # error. Non-5xx status errors keep failing as cannot_connect.
-                if err.response.status_code < 500:
+            except FireworksApiError as err:
+                if err.status_code < 500:
                     errors["base"] = "cannot_connect"
-            except OpenAIError:
-                errors["base"] = "cannot_connect"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
@@ -174,31 +164,22 @@ class FireworksSubentryFlowHandler(ConfigSubentryFlow):
     async def _get_models(self) -> None:
         """Fetch the available model ids from Fireworks AI."""
         entry = self._get_entry()
-        client = AsyncOpenAI(
-            base_url=CHAT_BASE_URL,
-            api_key=entry.data[CONF_API_KEY],
-            http_client=get_async_client(self.hass),
-        )
-        # Same bound as the other validation calls; without it a hung API
-        # stalls the form for the SDK's 600 s default.
         try:
-            self.model_ids = [
-                model.id
-                async for model in client.with_options(timeout=10.0).models.list()
-            ]
-        except APIStatusError as err:
-            # Fireworks' deployed-models endpoint intermittently 500s for valid
-            # keys. The model field accepts any catalog id typed by hand
+            self.model_ids = await async_fetch_serverless_model_ids(
+                self.hass, entry.data[CONF_API_KEY]
+            )
+        except FireworksApiError as err:
+            # The model field accepts any catalog id typed by hand
             # (custom_value=True), so degrade to an empty list and let the form
             # render instead of aborting the whole flow. Non-5xx errors still
             # propagate (the caller maps them to cannot_connect).
-            if err.response.status_code < 500:
+            if err.status_code < 500:
                 raise
             _LOGGER.warning(
                 "Fireworks model listing returned HTTP %s; showing the form "
                 "without a prefilled model list (type the id manually): %s",
-                err.response.status_code,
-                err,
+                err.status_code,
+                err.message,
             )
             self.model_ids = []
 
@@ -260,7 +241,7 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
 
         try:
             await self._get_models()
-        except OpenAIError:
+        except FireworksApiError:
             return self.async_abort(reason="cannot_connect")
         except Exception:
             _LOGGER.exception("Unexpected exception")
@@ -291,9 +272,8 @@ class ConversationFlowHandler(FireworksSubentryFlowHandler):
                             options=self._model_options(),
                             mode=SelectSelectorMode.DROPDOWN,
                             sort=True,
-                            # Fireworks' /v1/models is a curated subset — many
-                            # serverless models are omitted even though they are
-                            # callable — so allow typing any catalog model id
+                            # The serverless catalog can lag the public model
+                            # library — allow typing any catalog model id
                             # (e.g. accounts/fireworks/models/<name>).
                             custom_value=True,
                         ),
@@ -392,7 +372,7 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
 
         try:
             await self._get_models()
-        except OpenAIError:
+        except FireworksApiError:
             return self.async_abort(reason="cannot_connect")
         except Exception:
             _LOGGER.exception("Unexpected exception")
@@ -412,9 +392,8 @@ class AITaskDataFlowHandler(FireworksSubentryFlowHandler):
                             options=self._model_options(),
                             mode=SelectSelectorMode.DROPDOWN,
                             sort=True,
-                            # Fireworks' /v1/models is a curated subset — many
-                            # serverless models are omitted even though they are
-                            # callable — so allow typing any catalog model id
+                            # The serverless catalog can lag the public model
+                            # library — allow typing any catalog model id
                             # (e.g. accounts/fireworks/models/<name>).
                             custom_value=True,
                         ),

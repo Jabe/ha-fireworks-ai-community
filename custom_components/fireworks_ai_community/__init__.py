@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 import httpx
-from openai import AsyncOpenAI, APIStatusError, AuthenticationError, OpenAIError
+from openai import AsyncOpenAI
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, Platform
@@ -12,6 +12,11 @@ from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers.httpx_client import get_async_client
 
 from .const import CHAT_BASE_URL, LOGGER
+from .models_api import (
+    FireworksApiError,
+    FireworksAuthError,
+    async_fetch_serverless_model_ids,
+)
 
 PLATFORMS = [Platform.AI_TASK, Platform.CONVERSATION]
 
@@ -52,33 +57,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: FireworksConfigEntry) ->
     # (caching done by library)
     _ = await hass.async_add_executor_job(client.platform_headers)
 
-    # Validate the key and reachability before setting up platforms.
+    # Validate the key against the serverless model catalog before setup.
     try:
-        async for _ in client.with_options(timeout=10.0).models.list():
-            break
-    except AuthenticationError as err:
+        await async_fetch_serverless_model_ids(hass, entry.data[CONF_API_KEY], limit=1)
+    except FireworksAuthError as err:
         LOGGER.error("Invalid API key: %s", err)
         raise ConfigEntryError("Invalid API key") from err
-    except APIStatusError as err:
-        # A server-side (5xx) failure on the model-listing endpoint must not
-        # block setup. This probe only confirms the key + reachability; the
-        # integration never lists models at runtime (the model is chosen in
-        # options and chat goes to /chat/completions). Fireworks' deployed-
-        # models listing is known to intermittently 500 ("Error listing
-        # deployed models") even for valid keys, so a 5xx here already proves we
-        # reached Fireworks and the key was accepted — proceed and let any real
-        # outage surface on the first chat request. Non-5xx status errors keep
-        # the retry behaviour.
-        if err.response.status_code >= 500:
-            LOGGER.warning(
-                "Fireworks model listing returned HTTP %s during setup; "
-                "continuing anyway (endpoint unused at runtime): %s",
-                err.response.status_code,
-                err,
-            )
-        else:
-            raise ConfigEntryNotReady(err) from err
-    except OpenAIError as err:
+    except FireworksApiError as err:
         raise ConfigEntryNotReady(err) from err
 
     entry.runtime_data = FireworksData(chat=client)
