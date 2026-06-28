@@ -284,7 +284,6 @@ async def _transform_stream(
     content_buffer = ""
     thinking_buffer = ""
     last_flush = 0.0
-    first_content_yielded = False
 
     async def _hold_flush_gap() -> None:
         """Sleep out the remainder of the flush interval since the last flush.
@@ -336,22 +335,12 @@ async def _transform_stream(
             if slow_stream:
                 content_buffer += delta.content
                 now = time.monotonic()
-                should_yield = now - last_flush >= SLOW_STREAM_FLUSH_INTERVAL
-                if not first_content_yielded:
-                    # Force delivery of the *first* real answer content right when it
-                    # starts (after tools/thinking phase or at beginning of turn).
-                    # Otherwise in slow mode the first answer chunk can be held until
-                    # the next interval or the tail flush, leaving the UI stuck on "..."
-                    # even though the backend/TTS already has the text.
-                    should_yield = True
-                    first_content_yielded = True
-                if should_yield:
+                if now - last_flush >= SLOW_STREAM_FLUSH_INTERVAL:
                     yield {"content": content_buffer}
                     content_buffer = ""
                     last_flush = now
             else:
                 yield {"content": delta.content}
-                first_content_yielded = True
 
         for tool_call in delta.tool_calls or []:
             buffer = tool_calls.setdefault(
@@ -377,7 +366,6 @@ async def _transform_stream(
     if content_buffer:
         await _hold_flush_gap()
         yield {"content": content_buffer}
-        first_content_yielded = True
 
     LOGGER.debug(
         "Fireworks stream: ttfc=%.2fs ttf_content=%s total=%.2fs chunks=%d "
