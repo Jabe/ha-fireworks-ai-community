@@ -81,6 +81,64 @@ def _adjust_schema(schema: dict[str, Any]) -> None:
         _adjust_schema(schema["items"])
 
 
+def _normalize_schema_for_fireworks(schema: Any) -> Any:
+    """Recursively normalize a JSON schema for Fireworks compatibility.
+
+    Fireworks (OpenAI-compatible) and its strict json_schema mode do not
+    reliably support the composition keywords oneOf/anyOf/allOf.
+
+    Smarter strategy:
+    - anyOf / oneOf: pick first non-null alternative and merge its keys
+    - allOf: merge parts
+    - Recurse into all sub-values (properties, items, field schemas etc.)
+    - Goal: preserve "type", "enum" etc. instead of dropping to empty {}.
+    """
+    if isinstance(schema, list):
+        return [_normalize_schema_for_fireworks(item) for item in schema]
+
+    if not isinstance(schema, dict):
+        return schema
+
+    schema = dict(schema)
+
+    # Resolve anyOf / oneOf at this level
+    for comp_key in ("anyOf", "oneOf"):
+        if comp_key in schema:
+            options = schema.pop(comp_key) or []
+            if isinstance(options, list) and options:
+                chosen = next(
+                    (o for o in options if isinstance(o, dict) and o.get("type") != "null"),
+                    options[0] if options else None,
+                )
+                if chosen:
+                    chosen = _normalize_schema_for_fireworks(chosen)
+                    if isinstance(chosen, dict):
+                        for k, v in chosen.items():
+                            if k not in schema:
+                                schema[k] = v
+
+    # allOf: merge (keep existing keys)
+    if "allOf" in schema:
+        parts = schema.pop("allOf") or []
+        for part in parts:
+            part = _normalize_schema_for_fireworks(part)
+            if isinstance(part, dict):
+                for k, v in part.items():
+                    if k not in schema:
+                        schema[k] = v
+
+    # Recurse into *every* value — this is important so we reach schemas inside
+    # "properties": { "foo": { "anyOf": ... } }
+    for k in list(schema.keys()):
+        schema[k] = _normalize_schema_for_fireworks(schema[k])
+
+    # Safety: remove any leftover composition keys
+    for bad in ("anyOf", "oneOf", "allOf"):
+        schema.pop(bad, None)
+
+    return schema
+
+
 def _format_structured_output(
     name: str, schema: vol.Schema, llm_api: llm.APIInstance | None
 ) -> JSONSchema:
@@ -95,6 +153,7 @@ def _format_structured_output(
             llm_api.custom_serializer if llm_api else llm.selector_serializer
         ),
     )
+    result_schema = _normalize_schema_for_fireworks(result_schema)
 
     _adjust_schema(result_schema)
 
@@ -107,9 +166,8 @@ def _format_tool(
     custom_serializer: Callable[[Any], Any] | None,
 ) -> ChatCompletionFunctionToolParam:
     """Format tool specification."""
-    unsupported_keys = {"oneOf", "anyOf", "allOf"}
     schema = convert(tool.parameters, custom_serializer=custom_serializer)
-    schema = {k: v for k, v in schema.items() if k not in unsupported_keys}
+    schema = _normalize_schema_for_fireworks(schema)
 
     tool_spec = FunctionDefinition(
         name=tool.name,
