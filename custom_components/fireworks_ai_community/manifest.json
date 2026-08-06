@@ -9,6 +9,6 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Jabe/ha-fireworks-ai-community/issues",
-  "requirements": ["openai==2.21.0"],
-  "version": "0.3.6-beta.2"
+  "requirements": ["openai>=2.21.0"],
+  "version": "0.3.6-beta.3"
 }
