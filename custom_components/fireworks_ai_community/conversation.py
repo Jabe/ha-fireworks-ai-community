@@ -32,6 +32,7 @@ class FireworksConversationEntity(FireworksEntity, conversation.ConversationEnti
     """Fireworks AI conversation agent."""
 
     _attr_name = None
+    _attr_supports_streaming = True
 
     def __init__(self, entry: FireworksConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the agent."""

@@ -16,9 +16,10 @@ homeassistant>=2025.7.0
 # means we always run whatever version core itself uses.
 openai>=2.21.0
 
-# Used by entity.py for tool/structured-output schema conversion.
-# HA core shipped this through 2026.8; 2026.9 dropped it from the image
-# (moved to Probatio). Declared in the integration manifest so HA
-# installs it on setup. Unpinned so core's constraint (when present)
-# decides the version.
+# Used by entity.py for tool/structured-output schema conversion on
+# HA < 2026.9. 2026.9 dropped it from the image (moved to Probatio);
+# entity.py prefers probatio.to_openapi when that is present so HA's
+# selector_serializer sentinel matches the converter. Declared in the
+# integration manifest as a fallback. Unpinned so core's constraint
+# (when present) decides the version.
 voluptuous-openapi

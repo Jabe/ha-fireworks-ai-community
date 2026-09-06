@@ -28,11 +28,18 @@ from openai.types.shared_params.response_format_json_schema import JSONSchema
 import voluptuous as vol
 
 try:
-    from voluptuous_openapi import convert
+    from voluptuous_openapi import UNSUPPORTED as _VOL_UNSUPPORTED
+    from voluptuous_openapi import convert as _vol_convert
 except ImportError:
-    # HA 2026.9 dropped voluptuous-openapi from the core image and
-    # switched schema conversion to Probatio.
-    from probatio import to_openapi as convert
+    _VOL_UNSUPPORTED = None
+    _vol_convert = None
+
+try:
+    from probatio import UNSUPPORTED as _PROB_UNSUPPORTED
+    from probatio import to_openapi as _prob_convert
+except ImportError:
+    _PROB_UNSUPPORTED = None
+    _prob_convert = None
 
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
@@ -60,6 +67,31 @@ from .const import (
 
 MAX_TOOL_ITERATIONS = 10
 
+# Prefer Probatio: HA 2026.9's llm.selector_serializer returns
+# probatio.UNSUPPORTED. voluptuous-openapi.convert treats any other
+# sentinel as a finished schema, so tool formatting crashes before
+# the API is even called. Fall back to voluptuous-openapi on older cores.
+_convert_impl = _prob_convert or _vol_convert
+if _convert_impl is None:
+    raise ImportError("Need voluptuous-openapi or probatio to convert LLM tool schemas")
+_native_unsupported = (
+    _PROB_UNSUPPORTED if _convert_impl is _prob_convert else _VOL_UNSUPPORTED
+)
+
+
+def convert(schema: Any, custom_serializer: Callable[[Any], Any] | None = None) -> Any:
+    """Convert a voluptuous schema to OpenAPI using HA's schema library."""
+    serializer = custom_serializer
+    if custom_serializer is not None:
+
+        def serializer(value: Any) -> Any:
+            result = custom_serializer(value)
+            if result is _VOL_UNSUPPORTED or result is _PROB_UNSUPPORTED:
+                return _native_unsupported
+            return result
+
+    return _convert_impl(schema, custom_serializer=serializer)
+
 
 def _adjust_schema(schema: dict[str, Any]) -> None:
     """Adjust the schema to be compatible with the Fireworks API.
@@ -67,7 +99,8 @@ def _adjust_schema(schema: dict[str, Any]) -> None:
     Fireworks' strict structured output (json_schema) requires every property to
     be listed in ``required``; optional properties are made nullable instead.
     """
-    if schema["type"] == "object":
+    schema_type = schema.get("type")
+    if schema_type == "object":
         if "properties" not in schema:
             return
 
@@ -77,10 +110,15 @@ def _adjust_schema(schema: dict[str, Any]) -> None:
         for prop, prop_info in schema["properties"].items():
             _adjust_schema(prop_info)
             if prop not in schema["required"]:
-                prop_info["type"] = [prop_info["type"], "null"]
+                prop_type = prop_info.get("type")
+                if isinstance(prop_type, list):
+                    if "null" not in prop_type:
+                        prop_info["type"] = [*prop_type, "null"]
+                elif prop_type is not None:
+                    prop_info["type"] = [prop_type, "null"]
                 schema["required"].append(prop)
 
-    elif schema["type"] == "array":
+    elif schema_type == "array":
         if "items" not in schema:
             return
 
@@ -113,7 +151,11 @@ def _normalize_schema_for_fireworks(schema: Any) -> Any:
             options = schema.pop(comp_key) or []
             if isinstance(options, list) and options:
                 chosen = next(
-                    (o for o in options if isinstance(o, dict) and o.get("type") != "null"),
+                    (
+                        o
+                        for o in options
+                        if isinstance(o, dict) and o.get("type") != "null"
+                    ),
                     options[0] if options else None,
                 )
                 if chosen:
