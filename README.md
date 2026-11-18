@@ -1,12 +1,13 @@
 # Fireworks AI for Home Assistant (community)
 
-[![hacs][hacs-badge]][hacs] [![License: Apache 2.0][license-badge]][license]
+[![Marketplace][marketplace-badge]][marketplace] [![License: Apache 2.0][license-badge]][license]
 
 A custom Home Assistant integration that adds [Fireworks AI][fireworks] as a
 **conversation agent** and **AI Task** provider for Assist — using Fireworks'
 fast, OpenAI-compatible chat completions API.
 
-> **Community edition.** This is an unofficial HACS integration. Its domain is
+> **Community edition.** This is an unofficial custom integration, installed
+> through the Home Assistant Marketplace (formerly HACS). Its domain is
 > `fireworks_ai_community` so it never collides with a possible future official
 > `fireworks_ai` integration in Home Assistant core.
 
@@ -36,14 +37,34 @@ The architecture reserves clean extension points for STT and image generation.
   control) and **structured outputs** (for structured AI Tasks). Not every
   Fireworks model does — see the Fireworks model catalog.
 
-## Installation (HACS)
+## Installation
 
-1. In HACS → **Integrations** → ⋮ → **Custom repositories**, add this
-   repository with category **Integration**.
-2. Install **Fireworks AI** and restart Home Assistant.
-3. **Settings → Devices & Services → Add Integration → Fireworks AI**, then
+[![Open your Home Assistant instance and open this repository in the Marketplace.][my-badge]][my-repo]
+
+This integration isn't in the Marketplace catalog, so add it by link.
+
+**Home Assistant 2026.11 or newer (Marketplace):**
+
+1. **Settings → Marketplace → Add from link**, enter
+   `Jabe/ha-fireworks-ai-community` and select **Add**. If asked for a
+   **Type**, pick **Integration**. Adding by link needs the Marketplace's
+   GitHub connection.
+2. Open the repository, select **Install**, and restart Home Assistant.
+
+**Older Home Assistant (HACS):** In HACS → **Integrations** → ⋮ →
+**Custom repositories**, add this repository with category **Integration**,
+install **Fireworks AI** and restart Home Assistant.
+
+Then, for both:
+
+1. **Settings → Devices & Services → Add Integration → Fireworks AI**, then
    enter your API key.
-4. Add a **conversation agent** and/or **AI Task** subentry and pick a model.
+2. Add a **conversation agent** and/or **AI Task** subentry and pick a model.
+
+**Beta versions** are published as GitHub pre-releases. To get them in the
+Marketplace, open **Settings → Devices & services → Marketplace**, open this
+repository's device, enable its **Pre-release** entity (disabled by default)
+and turn the switch on. In HACS, use **Show beta versions** on the repository.
 
 ## Configuration
 
@@ -86,7 +107,9 @@ the Open Home Foundation.
 [fireworks-models]: https://fireworks.ai/models
 [fireworks-ondemand]: https://docs.fireworks.ai/guides/ondemand-deployments
 [open-router]: https://www.home-assistant.io/integrations/open_router/
-[hacs]: https://hacs.xyz/
-[hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
+[my-badge]: https://my.home-assistant.io/badges/hacs_repository.svg
+[my-repo]: https://my.home-assistant.io/redirect/hacs_repository/?owner=Jabe&repository=ha-fireworks-ai-community&category=integration
+[marketplace]: https://www.home-assistant.io/integrations/marketplace/
+[marketplace-badge]: https://img.shields.io/badge/Marketplace-Custom-41BDF5.svg
 [license]: ./LICENSE
 [license-badge]: https://img.shields.io/badge/License-Apache_2.0-blue.svg
