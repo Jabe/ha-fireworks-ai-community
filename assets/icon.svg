@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><defs><linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#22305A"/><stop offset="1" stop-color="#0B1222"/></linearGradient></defs><rect width="512" height="512" rx="116" fill="url(#navy)"/><polygon points="258.5,210.0 271.0,70.0 241.0,70.0 253.5,210.0" fill="#FFC94A"/><circle cx="256.0" cy="70.0" r="15.0" fill="#FFC94A"/><circle cx="256.0" cy="210.0" r="2.5" fill="#FFC94A"/>
+<circle cx="256.0" cy="30.0" r="11.0" fill="#FFC94A"/>
+<polygon points="275.9,214.5 317.6,137.8 296.0,128.8 271.3,212.5" fill="#FF8A3D"/><circle cx="306.8" cy="133.3" r="11.7" fill="#FF8A3D"/><circle cx="273.6" cy="213.5" r="2.5" fill="#FF8A3D"/>
+<polygon points="290.3,225.2 380.3,152.9 359.1,131.7 286.8,221.7" fill="#FF5A4E"/><circle cx="369.7" cy="142.3" r="15.0" fill="#FF5A4E"/><circle cx="288.5" cy="223.5" r="2.5" fill="#FF5A4E"/>
+<circle cx="398.0" cy="114.0" r="11.0" fill="#FF5A4E"/>
+<polygon points="299.5,240.7 374.1,219.7 365.2,198.1 297.5,236.1" fill="#FFB23F"/><circle cx="369.6" cy="208.9" r="11.7" fill="#FFB23F"/><circle cx="298.5" cy="238.4" r="2.5" fill="#FFB23F"/>
+<polygon points="302.0,258.5 442.0,271.0 442.0,241.0 302.0,253.5" fill="#FFC94A"/><circle cx="442.0" cy="256.0" r="15.0" fill="#FFC94A"/><circle cx="302.0" cy="256.0" r="2.5" fill="#FFC94A"/>
+<circle cx="482.0" cy="256.0" r="11.0" fill="#FFC94A"/>
+<polygon points="297.5,275.9 374.2,317.6 383.2,296.0 299.5,271.3" fill="#FF8A3D"/><circle cx="378.7" cy="306.8" r="11.7" fill="#FF8A3D"/><circle cx="298.5" cy="273.6" r="2.5" fill="#FF8A3D"/>
+<polygon points="286.8,290.3 359.1,380.3 380.3,359.1 290.3,286.8" fill="#FF5A4E"/><circle cx="369.7" cy="369.7" r="15.0" fill="#FF5A4E"/><circle cx="288.5" cy="288.5" r="2.5" fill="#FF5A4E"/>
+<circle cx="398.0" cy="398.0" r="11.0" fill="#FF5A4E"/>
+<polygon points="271.3,299.5 292.3,374.1 313.9,365.2 275.9,297.5" fill="#FFB23F"/><circle cx="303.1" cy="369.6" r="11.7" fill="#FFB23F"/><circle cx="273.6" cy="298.5" r="2.5" fill="#FFB23F"/>
+<polygon points="253.5,302.0 241.0,442.0 271.0,442.0 258.5,302.0" fill="#FFC94A"/><circle cx="256.0" cy="442.0" r="15.0" fill="#FFC94A"/><circle cx="256.0" cy="302.0" r="2.5" fill="#FFC94A"/>
+<circle cx="256.0" cy="482.0" r="11.0" fill="#FFC94A"/>
+<polygon points="236.1,297.5 194.4,374.2 216.0,383.2 240.7,299.5" fill="#FF8A3D"/><circle cx="205.2" cy="378.7" r="11.7" fill="#FF8A3D"/><circle cx="238.4" cy="298.5" r="2.5" fill="#FF8A3D"/>
+<polygon points="221.7,286.8 131.7,359.1 152.9,380.3 225.2,290.3" fill="#FF5A4E"/><circle cx="142.3" cy="369.7" r="15.0" fill="#FF5A4E"/><circle cx="223.5" cy="288.5" r="2.5" fill="#FF5A4E"/>
+<circle cx="114.0" cy="398.0" r="11.0" fill="#FF5A4E"/>
+<polygon points="212.5,271.3 137.9,292.3 146.8,313.9 214.5,275.9" fill="#FFB23F"/><circle cx="142.4" cy="303.1" r="11.7" fill="#FFB23F"/><circle cx="213.5" cy="273.6" r="2.5" fill="#FFB23F"/>
+<polygon points="210.0,253.5 70.0,241.0 70.0,271.0 210.0,258.5" fill="#FFC94A"/><circle cx="70.0" cy="256.0" r="15.0" fill="#FFC94A"/><circle cx="210.0" cy="256.0" r="2.5" fill="#FFC94A"/>
+<circle cx="30.0" cy="256.0" r="11.0" fill="#FFC94A"/>
+<polygon points="214.5,236.1 137.8,194.4 128.8,216.0 212.5,240.7" fill="#FF8A3D"/><circle cx="133.3" cy="205.2" r="11.7" fill="#FF8A3D"/><circle cx="213.5" cy="238.4" r="2.5" fill="#FF8A3D"/>
+<polygon points="225.2,221.7 152.9,131.7 131.7,152.9 221.7,225.2" fill="#FF5A4E"/><circle cx="142.3" cy="142.3" r="15.0" fill="#FF5A4E"/><circle cx="223.5" cy="223.5" r="2.5" fill="#FF5A4E"/>
+<circle cx="114.0" cy="114.0" r="11.0" fill="#FF5A4E"/>
+<polygon points="240.7,212.5 219.7,137.9 198.1,146.8 236.1,214.5" fill="#FFB23F"/><circle cx="208.9" cy="142.4" r="11.7" fill="#FFB23F"/><circle cx="238.4" cy="213.5" r="2.5" fill="#FFB23F"/>
+<circle cx="317.0" cy="119.0" r="7.0" fill="#FFC94A"/>
+<circle cx="362.1" cy="327.6" r="6.0" fill="#FFC94A"/>
+<circle cx="168.8" cy="385.3" r="7.0" fill="#FFC94A"/>
+<circle cx="146.6" cy="182.2" r="6.0" fill="#FFC94A"/>
+<circle cx="256" cy="256" r="26.0" fill="#FFF2D0"/></svg>

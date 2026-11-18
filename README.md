@@ -99,7 +99,9 @@ This integration is derived from the Home Assistant core
 [`open_router`][open-router] integration and is distributed under the same
 [Apache-2.0][license] license. Home Assistant is a trademark of the Open Home
 Foundation; this project is not affiliated with or endorsed by Fireworks AI or
-the Open Home Foundation.
+the Open Home Foundation. The integration icon is original artwork (a generic
+firework burst, source in [`assets/icon.svg`](assets/icon.svg)), not the
+Fireworks AI logo.
 
 [mise]: https://mise.jdx.dev/
 [fireworks]: https://fireworks.ai/
