@@ -31,7 +31,7 @@ The architecture reserves clean extension points for STT and image generation.
 
 ## Requirements
 
-- Home Assistant **2025.7** or newer.
+- Home Assistant **2025.9** or newer.
 - A [Fireworks AI API key][fireworks-keys].
 - Models you select must support **tool/function calling** (for Assist device
   control) and **structured outputs** (for structured AI Tasks). Not every

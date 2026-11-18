@@ -2,6 +2,7 @@
 
 import base64
 from collections.abc import AsyncGenerator, Callable
+from dataclasses import dataclass
 import json
 from mimetypes import guess_file_type
 from pathlib import Path
@@ -64,6 +65,17 @@ from .const import (
 )
 
 MAX_TOOL_ITERATIONS = 10
+
+# Appended to the last tool result before the final allowed request, which also
+# sets tool_choice="none", so a turn that hits the cap still ends in an answer
+# instead of stopping with tool results nobody replied to.
+FINAL_ITERATION_DIRECTIVE = (
+    "You have reached the maximum number of tool calls for this request. "
+    "Do not call any more tools; answer the user now with what you have."
+)
+
+# Cap on how much of a malformed tool-argument string is echoed back to the model.
+MAX_ECHOED_ARGUMENTS = 500
 
 # Prefer Probatio: HA 2026.9's llm.selector_serializer returns
 # probatio.UNSUPPORTED. voluptuous-openapi.convert treats any other
@@ -224,6 +236,58 @@ def _format_tool(
     return ChatCompletionFunctionToolParam(type="function", function=tool_spec)
 
 
+# HA 2026.10 wraps tool results in llm.ToolResult (ToolResultContent.result and a
+# `result` key on tool result deltas) and deprecated the bare `tool_result`
+# mapping, which logs a warning on every read and goes away in 2027.11.
+_ToolResult = getattr(llm, "ToolResult", None)
+
+
+def _tool_result_data(content: conversation.ToolResultContent) -> Any:
+    """Return a tool result's data on any supported core version."""
+    if (result := getattr(content, "result", None)) is not None:
+        return result.data
+    return content.tool_result
+
+
+def _tool_error_delta(
+    tool_call_id: str, tool_name: str, error: str, error_text: str
+) -> conversation.ToolResultContentDeltaDict:
+    """Build a tool result delta that reports an error to the model."""
+    data = {"error": error, "error_text": error_text}
+    delta: conversation.ToolResultContentDeltaDict = {
+        "role": "tool_result",
+        "tool_call_id": tool_call_id,
+        "tool_name": tool_name,
+    }
+    if _ToolResult is not None:
+        delta["result"] = _ToolResult(data=data, error=True)
+    else:
+        delta["tool_result"] = data
+    return delta
+
+
+def _order_tool_messages(
+    messages: list[ChatCompletionMessageParam],
+) -> list[ChatCompletionMessageParam]:
+    """Put tool results in the order of the tool calls they answer.
+
+    ChatLog adds results as they finish, and our own error results after the
+    ones it ran, so they can come back out of order. Some chat templates pair
+    results with calls by position.
+    """
+    position = {
+        call["id"]: index
+        for msg in messages
+        if msg["role"] == "assistant"
+        for index, call in enumerate(msg.get("tool_calls") or [])
+    }
+    tool_messages = [msg for msg in messages if msg["role"] == "tool"]
+    if len(tool_messages) < 2:
+        return messages
+    tool_messages.sort(key=lambda msg: position.get(msg["tool_call_id"], len(position)))
+    return [msg for msg in messages if msg["role"] != "tool"] + tool_messages
+
+
 def _convert_content_to_chat_message(
     content: conversation.Content,
 ) -> ChatCompletionMessageParam | None:
@@ -233,7 +297,7 @@ def _convert_content_to_chat_message(
         return ChatCompletionToolMessageParam(
             role="tool",
             tool_call_id=content.tool_call_id,
-            content=json_dumps(content.tool_result),
+            content=json_dumps(_tool_result_data(content)),
         )
 
     role: Literal["user", "assistant", "system"] = content.role
@@ -265,18 +329,30 @@ def _convert_content_to_chat_message(
     return None
 
 
-def _decode_tool_arguments(arguments: str) -> Any:
-    """Decode tool call arguments."""
+def _parse_tool_arguments(arguments: str) -> dict[str, Any] | None:
+    """Parse tool call arguments; None if they aren't a JSON object."""
     try:
-        return json.loads(arguments)
-    except json.JSONDecodeError as err:
-        raise HomeAssistantError(f"Unexpected tool argument response: {err}") from err
+        parsed = json.loads(arguments or "{}")
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+@dataclass
+class _StreamResult:
+    """What a streamed response leaves behind that the ChatLog doesn't keep."""
+
+    # The full chain of thought, collected whether or not it's shown in the UI.
+    reasoning: str = ""
 
 
 async def _transform_stream(
     stream: openai.AsyncStream[ChatCompletionChunk],
     show_reasoning: bool,
-) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
+    stream_result: _StreamResult,
+) -> AsyncGenerator[
+    conversation.AssistantContentDeltaDict | conversation.ToolResultContentDeltaDict
+]:
     """Transform a Fireworks streaming response into ChatLog deltas.
 
     Emits the role once, then answer text (as content) fragments as they arrive —
@@ -286,13 +362,20 @@ async def _transform_stream(
     dispatches a tool the moment it sees a ToolInput, so a partial would fire a
     malformed call.
 
+    A tool call whose arguments aren't a JSON object is never run. It is marked
+    external (so ChatLog skips it) and answered with an error tool result, so
+    the model can retry that call instead of the whole turn failing.
+
     When ``show_reasoning`` is set, a reasoning model's chain of thought (the
     non-standard ``reasoning_content`` field) is also surfaced as thinking_content.
     Off by default: the reasoning still runs server-side and improves the answer,
     but streaming it makes the Assist chat UI stall on tool-using turns (a message
-    with thinking but no content yet), so it is opt-in.
+    with thinking but no content yet), so it is opt-in. Either way the full text
+    is left in ``stream_result`` for the caller to send back to the model.
     """
     yield {"role": "assistant"}
+
+    reasoning_parts: list[str] = []
 
     tool_calls: dict[int, dict[str, str]] = {}
 
@@ -321,6 +404,7 @@ async def _transform_stream(
         extra = delta.model_extra or {}
         if reasoning := extra.get("reasoning_content") or extra.get("reasoning"):
             reasoning_chars += len(reasoning)
+            reasoning_parts.append(reasoning)
             if show_reasoning:
                 yield {"thinking_content": reasoning}
 
@@ -353,17 +437,57 @@ async def _transform_stream(
         len(tool_calls),
     )
 
-    if tool_calls:
-        yield {
-            "tool_calls": [
+    stream_result.reasoning = "".join(reasoning_parts)
+
+    if not tool_calls:
+        return
+
+    tool_inputs: list[llm.ToolInput] = []
+    invalid_calls: list[dict[str, str]] = []
+    for _, buffer in sorted(tool_calls.items()):
+        tool_args = _parse_tool_arguments(buffer["arguments"])
+        if tool_args is None:
+            LOGGER.warning(
+                "Fireworks returned invalid arguments for tool %s: %s",
+                buffer["name"],
+                buffer["arguments"],
+            )
+            invalid_calls.append(buffer)
+            # Echoed back as "{}": a non-JSON arguments string in the history
+            # can make the server reject the next request.
+            tool_inputs.append(
                 llm.ToolInput(
                     id=buffer["id"],
                     tool_name=buffer["name"],
-                    tool_args=_decode_tool_arguments(buffer["arguments"] or "{}"),
+                    tool_args={},
+                    external=True,
                 )
-                for _, buffer in sorted(tool_calls.items())
-            ]
-        }
+            )
+        else:
+            tool_inputs.append(
+                llm.ToolInput(
+                    id=buffer["id"], tool_name=buffer["name"], tool_args=tool_args
+                )
+            )
+
+    yield {"tool_calls": tool_inputs}
+
+    # Name the failed call so a retry doesn't re-fire sibling calls that ran.
+    retry_hint = (
+        "The other tool calls in the same response already ran; repeat only "
+        "this one, with valid arguments."
+        if len(tool_inputs) > 1
+        else "Call it again with valid arguments."
+    )
+    for buffer in invalid_calls:
+        yield _tool_error_delta(
+            buffer["id"],
+            buffer["name"],
+            "InvalidToolArguments",
+            f"This {buffer['name']} call was not run: its arguments must be a "
+            "JSON object, but were "
+            f"{buffer['arguments'][:MAX_ECHOED_ARGUMENTS]!r}. {retry_hint}",
+        )
 
 
 async def async_prepare_files_for_prompt(
@@ -489,7 +613,23 @@ class FireworksEntity(Entity):
         client = self.entry.runtime_data.chat
         show_reasoning = self.subentry.data.get(CONF_SHOW_REASONING, False)
 
-        for _iteration in range(MAX_TOOL_ITERATIONS):
+        for iteration in range(MAX_TOOL_ITERATIONS):
+            messages = model_args["messages"]
+            if (
+                iteration == MAX_TOOL_ITERATIONS - 1
+                and "tools" in model_args
+                and messages[-1]["role"] == "tool"
+            ):
+                # Last allowed request: make the model answer instead of calling
+                # more tools. The directive goes into the tool result itself so
+                # the tool message stays last (interleaved thinking keys on it).
+                LOGGER.debug("Tool iteration limit reached, asking for an answer")
+                messages[-1]["content"] = (
+                    f"{messages[-1]['content']}\n\n{FINAL_ITERATION_DIRECTIVE}"
+                )
+                model_args["tool_choice"] = "none"
+
+            stream_result = _StreamResult()
             try:
                 create_start = time.monotonic()
                 # Disable retries here: a stalled stream that hits the read
@@ -511,19 +651,28 @@ class FireworksEntity(Entity):
                     len(model_args.get("tools", [])),
                 )
 
-                model_args["messages"].extend(
-                    [
-                        msg
-                        async for content in chat_log.async_add_delta_content_stream(
-                            self.entity_id,
-                            _transform_stream(result, show_reasoning),
-                        )
-                        if (msg := _convert_content_to_chat_message(content))
-                    ]
-                )
+                new_messages = [
+                    msg
+                    async for content in chat_log.async_add_delta_content_stream(
+                        self.entity_id,
+                        _transform_stream(result, show_reasoning, stream_result),
+                    )
+                    if (msg := _convert_content_to_chat_message(content))
+                ]
             except openai.OpenAIError as err:
                 LOGGER.error("Error talking to API: %s", err)
                 raise HomeAssistantError("Error talking to API") from err
+
+            # Interleaved thinking: when the next request ends in tool results,
+            # reasoning models need their earlier reasoning from this tool-call
+            # sequence back (models that don't use it ignore the field). It is
+            # only sent within this turn, never replayed into later user turns.
+            if stream_result.reasoning:
+                for msg in new_messages:
+                    if msg["role"] == "assistant":
+                        msg["reasoning_content"] = stream_result.reasoning
+                        break
+            messages.extend(_order_tool_messages(new_messages))
 
             if not chat_log.unresponded_tool_results:
                 break
