@@ -29,26 +29,6 @@ REASONING_MAX_TOKENS = 16000
 # reasoning improves the answer whether or not it is shown.
 CONF_SHOW_REASONING = "show_reasoning"
 
-# "Slow mode" for the chat stream. Fireworks emits tokens in sub-millisecond
-# bursts, and the Assist chat UI re-renders every content delta through an async
-# markdown web worker that has no last-write-wins guard (frontend
-# ha-markdown-element._render): at full token speed a stale render can land after
-# the final one and leave the chat stuck on "…", even though the turn already
-# finished server-side. The slower the provider, the smaller the race window —
-# which is why this bites fast Fireworks streaming (and bites *more* on
-# non-reasoning turns, where there is no server-side think pause to space the
-# tokens out). When enabled, content deltas are coalesced into at most one flush
-# per SLOW_STREAM_FLUSH_INTERVAL seconds, so the worker stops racing itself.
-# 0.1 s proved too tight in the field: fast non-reasoning turns still collided
-# (and the end-of-stream tail flush could land ~50 ms behind the previous one,
-# re-creating exactly the back-to-back render the throttle exists to prevent).
-# 0.3 s spaces renders enough that a typical short answer paints in one or two
-# well-separated deltas; the tail flush is held to the same minimum gap.
-# Opt-in and conversation-only; the assembled answer and the TTS stream are
-# byte-for-byte identical, only the streamed delta granularity changes.
-CONF_SLOW_STREAM = "slow_stream"
-SLOW_STREAM_FLUSH_INTERVAL = 0.3
-
 # Per-request bound for an interactive chat stream. The client already sets a
 # 30 s read timeout, but its default retries turn a stalled request into a
 # silent ~2x wait: a 30 s timeout plus one retry lands at ~33 s, which is the

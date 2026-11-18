@@ -1,0 +1,9 @@
+# Pin import sorting to Home Assistant core's isort style, so `ruff = "latest"`
+# in mise.toml can't silently change the expected import layout under us.
+target-version = "py313"
+
+[lint.isort]
+force-sort-within-sections = true
+known-first-party = ["homeassistant"]
+combine-as-imports = true
+split-on-trailing-comma = false

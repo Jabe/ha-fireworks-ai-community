@@ -1,6 +1,5 @@
 """Base entity for Fireworks AI."""
 
-import asyncio
 import base64
 from collections.abc import AsyncGenerator, Callable
 import json
@@ -28,15 +27,16 @@ from openai.types.shared_params.response_format_json_schema import JSONSchema
 import voluptuous as vol
 
 try:
-    from voluptuous_openapi import UNSUPPORTED as _VOL_UNSUPPORTED
-    from voluptuous_openapi import convert as _vol_convert
+    from voluptuous_openapi import (
+        UNSUPPORTED as _VOL_UNSUPPORTED,
+        convert as _vol_convert,
+    )
 except ImportError:
     _VOL_UNSUPPORTED = None
     _vol_convert = None
 
 try:
-    from probatio import UNSUPPORTED as _PROB_UNSUPPORTED
-    from probatio import to_openapi as _prob_convert
+    from probatio import UNSUPPORTED as _PROB_UNSUPPORTED, to_openapi as _prob_convert
 except ImportError:
     _PROB_UNSUPPORTED = None
     _prob_convert = None
@@ -56,13 +56,11 @@ from .const import (
     CHAT_REQUEST_TIMEOUT,
     CONF_REASONING_EFFORT,
     CONF_SHOW_REASONING,
-    CONF_SLOW_STREAM,
     DOMAIN,
     LOGGER,
     REASONING_EFFORT_DEFAULT,
     REASONING_EFFORT_NONE,
     REASONING_MAX_TOKENS,
-    SLOW_STREAM_FLUSH_INTERVAL,
 )
 
 MAX_TOOL_ITERATIONS = 10
@@ -278,7 +276,6 @@ def _decode_tool_arguments(arguments: str) -> Any:
 async def _transform_stream(
     stream: openai.AsyncStream[ChatCompletionChunk],
     show_reasoning: bool,
-    slow_stream: bool,
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform a Fireworks streaming response into ChatLog deltas.
 
@@ -294,16 +291,6 @@ async def _transform_stream(
     Off by default: the reasoning still runs server-side and improves the answer,
     but streaming it makes the Assist chat UI stall on tool-using turns (a message
     with thinking but no content yet), so it is opt-in.
-
-    When ``slow_stream`` is set, both the answer text and (when shown) the
-    chain of thought are coalesced into at most one delta per
-    ``SLOW_STREAM_FLUSH_INTERVAL`` instead of one per token. Fireworks streams
-    tokens far faster than the Assist chat UI's async markdown renderer can keep
-    up with, and a stale render can overwrite the final one and leave the chat
-    stuck on "…"; pacing the deltas keeps the renderer from racing itself. The
-    thinking stream needs the same pacing as the answer — on a low-effort
-    reasoning turn it is by far the larger firehose. The assembled content (and
-    therefore the TTS stream) is unchanged.
     """
     yield {"role": "assistant"}
 
@@ -322,28 +309,6 @@ async def _transform_stream(
     content_chars = 0
     chunk_count = 0
 
-    # Slow mode: coalesce each token firehose into at most one delta per
-    # SLOW_STREAM_FLUSH_INTERVAL. Thinking and answer text get separate buffers
-    # but share ONE flush clock: the thinking->content boundary is itself a render
-    # pair, and a per-stream clock let the answer's first paint fire microseconds
-    # behind the last thinking flush (the freeze seen in the field). One clock
-    # makes the answer wait out the same gap after thinking ends. last_flush starts
-    # at 0.0 so the very first token paints immediately; the rest flushes post-loop.
-    content_buffer = ""
-    thinking_buffer = ""
-    last_flush = 0.0
-
-    async def _hold_flush_gap() -> None:
-        """Sleep out the remainder of the flush interval since the last flush.
-
-        Every slow-mode flush that isn't already gated by the clock check must
-        wait this out before yielding, or it lands right behind the previous
-        render and re-creates the race the throttle exists to prevent.
-        """
-        gap = time.monotonic() - last_flush
-        if gap < SLOW_STREAM_FLUSH_INTERVAL:
-            await asyncio.sleep(SLOW_STREAM_FLUSH_INTERVAL - gap)
-
     async for chunk in stream:
         if first_chunk_at is None:
             first_chunk_at = time.monotonic() - start
@@ -357,38 +322,13 @@ async def _transform_stream(
         if reasoning := extra.get("reasoning_content") or extra.get("reasoning"):
             reasoning_chars += len(reasoning)
             if show_reasoning:
-                if slow_stream:
-                    thinking_buffer += reasoning
-                    now = time.monotonic()
-                    if now - last_flush >= SLOW_STREAM_FLUSH_INTERVAL:
-                        yield {"thinking_content": thinking_buffer}
-                        thinking_buffer = ""
-                        last_flush = now
-                else:
-                    yield {"thinking_content": reasoning}
+                yield {"thinking_content": reasoning}
 
         if delta.content:
-            # Answer text started: the chain of thought is done. Flush any held
-            # thinking — held to the minimum gap itself, or it can land right
-            # behind the previous thinking flush — and stamp the shared clock,
-            # so the answer's first paint waits out the same gap too.
-            if thinking_buffer:
-                await _hold_flush_gap()
-                yield {"thinking_content": thinking_buffer}
-                thinking_buffer = ""
-                last_flush = time.monotonic()
             if first_content_at is None:
                 first_content_at = time.monotonic() - start
             content_chars += len(delta.content)
-            if slow_stream:
-                content_buffer += delta.content
-                now = time.monotonic()
-                if now - last_flush >= SLOW_STREAM_FLUSH_INTERVAL:
-                    yield {"content": content_buffer}
-                    content_buffer = ""
-                    last_flush = now
-            else:
-                yield {"content": delta.content}
+            yield {"content": delta.content}
 
         for tool_call in delta.tool_calls or []:
             buffer = tool_calls.setdefault(
@@ -400,20 +340,6 @@ async def _transform_stream(
                 buffer["name"] = tool_call.function.name
             if tool_call.function and tool_call.function.arguments:
                 buffer["arguments"] += tool_call.function.arguments
-
-    # Flush anything held back by the slow-mode throttle, each held to the same
-    # minimum gap: the markdown web worker has no last-write-wins guard, so a tail
-    # flush landing right behind the previous one can lose the race and freeze the
-    # chat mid-render. (No-op when not in slow mode: the buffers stay empty.) The
-    # thinking tail only fires on a thinking-only turn, e.g. reasoning then a tool
-    # call with no answer text — otherwise it was flushed when content began.
-    if thinking_buffer:
-        await _hold_flush_gap()
-        yield {"thinking_content": thinking_buffer}
-        last_flush = time.monotonic()
-    if content_buffer:
-        await _hold_flush_gap()
-        yield {"content": content_buffer}
 
     LOGGER.debug(
         "Fireworks stream: ttfc=%.2fs ttf_content=%s total=%.2fs chunks=%d "
@@ -562,7 +488,6 @@ class FireworksEntity(Entity):
 
         client = self.entry.runtime_data.chat
         show_reasoning = self.subentry.data.get(CONF_SHOW_REASONING, False)
-        slow_stream = self.subentry.data.get(CONF_SLOW_STREAM, False)
 
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
@@ -591,7 +516,7 @@ class FireworksEntity(Entity):
                         msg
                         async for content in chat_log.async_add_delta_content_stream(
                             self.entity_id,
-                            _transform_stream(result, show_reasoning, slow_stream),
+                            _transform_stream(result, show_reasoning),
                         )
                         if (msg := _convert_content_to_chat_message(content))
                     ]
